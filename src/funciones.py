@@ -13,6 +13,7 @@ from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import confusion_matrix
 import importlib
+from sklearn.metrics import precision_score, recall_score, balanced_accuracy_score, f1_score
 
 
 from parametros import cum_cat, one_hot_encoder, rf_selection, ce_selection, features, hyperparameters
@@ -414,51 +415,90 @@ def search_hyperparameters(
 
 
 
+def evaluation_metrics(
+    optimization_results: Dict[str, Tuple[Any, Any]],
+    X_test: pd.DataFrame,
+    y_test: pd.Series
+) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Calcula las métricas de evaluación y las predicciones para los resultados de optimización de varios modelos.
+    """
+    # DataFrames para almacenar los resultados
+    metrics = pd.DataFrame(columns=['Modelo', 'precision', 'recall', 'balanced_accuracy', 'f1_score'])
+    predictions_metrics = pd.DataFrame(columns=['Modelo', 'precision', 'recall', 'balanced_accuracy', 'f1_score'])
+
+    # Iterar sobre cada modelo en los resultados de optimización
+    for index, (model_name, (model, grid_search)) in enumerate(optimization_results.items(), start=1):
+        # Extraer las métricas para el mejor conjunto de hiperparámetros
+        metrics.loc[index] = [
+            model_name,
+            grid_search.cv_results_['mean_test_precision'][grid_search.best_index_],
+            grid_search.cv_results_['mean_test_recall'][grid_search.best_index_],
+            grid_search.cv_results_['mean_test_balanced_accuracy'][grid_search.best_index_],
+            grid_search.cv_results_['mean_test_f1'][grid_search.best_index_]
+        ]
+
+        # Hacer predicciones y calcular las métricas para estas predicciones
+        y_pred = model.predict(X_test)
+        precision = precision_score(y_test, y_pred, average='binary')
+        recall = recall_score(y_test, y_pred, average='binary')
+        balanced_accuracy = balanced_accuracy_score(y_test, y_pred)
+        f1 = f1_score(y_test, y_pred, average='binary')
+
+        # Almacenar las métricas de predicciones en el DataFrame
+        predictions_metrics.loc[index] = [model_name, precision, recall, balanced_accuracy, f1]
+
+    # Ordenar los resultados de métricas
+    metrics.sort_values(by='recall', ascending=True, inplace=True)
+
+    return metrics, predictions_metrics
 
 
+def matriz_confusion(
+    modelo: Any, 
+    X: pd.DataFrame, 
+    y: pd.Series) -> plt.Figure:
+    """
+    Crea y visualiza una matriz de confusión para un modelo dado.
 
+    Parameters
+    ----------
+    modelo : Any
+        El modelo que se utilizará para hacer las predicciones.
+    X_test : pd.DataFrame
+        El conjunto de datos de prueba que se utilizará para hacer las predicciones.
+    y_test : pd.Series
+        Las etiquetas verdaderas para el conjunto de datos de prueba.
 
+    Returns
+    -------
+    plt.Figure
+        La figura de la matriz de confusión.
+    """
+    # Predicciones
+    y_pred = modelo.predict(X)
 
+    # Matriz de confusión
+    cm = confusion_matrix(y_true=y, y_pred=y_pred, labels=None, normalize=None)
 
-
-
-def matriz_confusion(modelo, X_test, y_test):
-     #Predicciones
-    y_pred = modelo.predict(X_test)
-
-    #Matriz de confusión
-    cm = confusion_matrix(y_true=y_test, y_pred=y_pred, labels=None, normalize=None)
-
-    #Etiquetas de las clases
+    # Etiquetas de las clases
     class_names = ['No Acepta TC', 'Acepta TC']
 
-    #Crear figura y ejes
+    # Crear figura y ejes
     fig, ax = plt.subplots()
 
-    #Crear el mapa de calor
+    # Crear el mapa de calor
     heatmap = sns.heatmap(cm, cmap="Blues", annot=True, fmt="d", cbar=False,
                           xticklabels=class_names, yticklabels=class_names,
                           linewidths=0.5, linecolor='gray', ax=ax)
 
-    #Añadir etiquetas a los ejes
+    # Añadir etiquetas a los ejes
     ax.set_xlabel('Predicciones del Modelo')
     ax.set_ylabel('Valores Reales')
     ax.set_title('Matriz de Confusión')
 
-    #Ajustar la figura
+    # Ajustar la figura
     plt.tight_layout()
 
-    #Mostrar la figura
-    plt.show()
-
-
-
-def evaluation_metrics(grid_search):
-    medidas = pd.DataFrame(index=['roc_auc de la CV', 'precision de la CV', 'recall de la CV', 'accuracy de la CV', 'f1 de la CV'])
-    medidas['Mejor_Modelo'] = [grid_search.cv_results_['mean_test_roc_auc'][grid_search.best_index_], 
-                      grid_search.cv_results_['mean_test_precision'][grid_search.best_index_],
-                      grid_search.cv_results_['mean_test_recall'][grid_search.best_index_],
-                      grid_search.cv_results_['mean_test_accuracy'][grid_search.best_index_],
-                      grid_search.cv_results_['mean_test_f1'][grid_search.best_index_]]
-    medidas.sort_values(by='Mejor_Modelo', ascending=False, inplace=True)
-    return medidas
+    # Devolver la figura
+    return fig

@@ -1,21 +1,22 @@
-import pandas as pd
+# Librearias
+import polars as pl
 import sys
 
 
 ########## Process Data ##########
 sys.path.append('src/')
-from paths.path import raw_data_path
-from functions.process import delete_accents
+from paths.path import raw_data_path, tag_dict_path
+from functions.process import validate_tags_pl, validate_dtypes_pl, change_names_pl
 
 
 # Load data
-data = pd.read_csv(raw_data_path)
-data.info()
-pd.set_option("display.max_columns", None)
-pd.set_option("display.max_rows", None)
-data.info()
+tag_dict = pl.read_excel(tag_dict_path)
+data = pl.read_csv(raw_data_path)
 
-# Delete accents
-data = delete_accents(data)
+# Validar campos de las fuentes
+data = validate_tags_pl(data, tag_dict)
+
+# Validar tipos de datos
+data = validate_dtypes_pl(data, tag_dict)
 
 

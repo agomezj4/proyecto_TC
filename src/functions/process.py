@@ -1,4 +1,4 @@
-from typing import Dict, List, Any, Tuple
+from typing import Dict, List, Any
 
 import polars as pl
 import unicodedata
@@ -109,28 +109,70 @@ def change_names_pl(df: pl.DataFrame, tag_dict: pl.DataFrame) -> pl.DataFrame:
     -------
     pl.DataFrame: Un nuevo DataFrame con las columnas renombradas según el tag dictionary
     """
-
-    # Registra un mensaje de información indicando el inicio del proceso de cambio de nombres
     logger.info("Iniciando el cambio de nombres...")
 
-    # Filtra las filas del tag dictionary donde "source" sea "raw" y crea una nueva columna 'column_name'
+    # Filtra las filas del tag dictionary donde "source" sea "raw" y selecciona las columnas "tag" y "name"
     tag_dict_filtered = tag_dict.filter(pl.col("source") == "raw").select(["tag", "name"])
 
     # Crea un diccionario de mapeo para cambiar los nombres de las columnas
-    col_mapping = {row['tag']: row['name'] for row in tag_dict_filtered.collect()}
+    col_mapping = dict(zip(tag_dict_filtered['tag'].to_list(), tag_dict_filtered['name'].to_list()))
 
     # Cambia los nombres de las columnas según el tag dictionary "raw"
     df = df.rename(col_mapping)
 
-    # Registra un mensaje informativo
     logger.info("Nombres de columnas cambiados")
 
     return df
 
 
-
 # 4. Cambiar tipos de datos
+def change_dtype_pl(df: pl.DataFrame, tag_dict: pl.DataFrame) -> pl.DataFrame:
+    """
+    Cambia el tipo de datos de cada columna en un DataFrame al tipo de datos especificado
+    en el tag dictionary usando Polars.
+
+    Parameters
+    ----------
+    df : polars.DataFrame
+        DataFrame de polars del cual se cambiarán los tipos de datos.
+    tag_dict: polars.DataFrame
+        Diccionario de etiquetas en un DataFrame de polars.
+
+    Returns
+    -------
+    pl.DataFrame: DataFrame con las columnas cambiadas al nuevo tipo de datos.
+    """
+    logger.info("Iniciando el cambio de tipos de datos...")
+
+    # Filtrar tag_dict para incluir solo las filas con "source" igual a "raw"
+    tag_dict = tag_dict.filter(tag_dict["source"] == "raw")
+
+    # Crear un diccionario de mapeo de tipos de datos
+    type_mapping = dict(zip(tag_dict['name'].to_list(), tag_dict['data_type_new'].to_list()))
+
+    # Preparar las columnas para la transformación
+    transformed_columns = []
+    for col in df.columns:
+        if col in type_mapping:
+            try:
+                new_type = eval('pl.' + type_mapping[col]) if isinstance(type_mapping[col], str) else type_mapping[col]
+                transformed_column = pl.col(col).cast(new_type).alias(col)
+                transformed_columns.append(transformed_column)
+            except Exception as e:
+                print(f"Error al intentar castear la columna {col} a {type_mapping[col]}: {e}")
+
+    # Aplicar las transformaciones si hay columnas a transformar
+    if transformed_columns:
+        df = df.with_columns(transformed_columns)
+
+    logger.info("Dtypes cambiados!")
+
+    return df
+
+
 # 5. Eliminar acentos
+
+
 # 6. Duplicaods
 # 7. Nulos
 #8. Eliminar Acentos

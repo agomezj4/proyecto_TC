@@ -171,8 +171,42 @@ def change_dtype_pl(df: pl.DataFrame, tag_dict: pl.DataFrame) -> pl.DataFrame:
 
 
 # 5. Eliminar acentos
+def delete_accents_pl(df: pl.DataFrame) -> pl.DataFrame:
+    """
+    Elimina los acentos de las columnas identificadas como "str" de un DataFrame de Polars.
+
+    Parameters
+    ----------
+    df : polars.DataFrame
+        DataFrame de Polars del cual se eliminarán los acentos.
+
+    Returns
+    -------
+    polars.DataFrame
+        DataFrame de Polars con los acentos eliminados de las columnas especificadas.
+    """
+    logger.info("Iniciando la eliminación de acentos...")
+
+    # Define una expresión regular que cubra los acentos y caracteres especiales más comunes
+    accents_and_special_chars_pattern = r'[^\w\s]'  # Esto elimina todo lo que no sea alfanumérico o espacio
+
+    # Seleccionar solo columnas de tipo string
+    string_cols = [col for col in df.columns if df[col].dtype == pl.Utf8]
+
+    # Aplicar la eliminación solo a las columnas de tipo string
+    update_expressions = [
+        pl.col(col).str.replace_all(accents_and_special_chars_pattern, '').alias(col)
+        for col in string_cols
+    ]
+
+    # Aplicar todas las expresiones de actualización al DataFrame manteniendo el resto de las columnas intactas
+    df = df.with_columns(update_expressions)
+
+    logger.info("Acentos eliminados!")
+
+    return df
+
+# 7. Re categorizar columnas
 
 
-# 6. Duplicaods
 # 7. Nulos
-#8. Eliminar Acentos

@@ -18,11 +18,6 @@ from sklearn.metrics import precision_score, recall_score, balanced_accuracy_sco
 
 from parameters.parameters import cum_cat, one_hot_encoder, rf_selection, ce_selection, features, hyperparameters
 
-
-
-
-
-
 def cumulatively_categorise(
     column: pd.Series, 
     cum_cat: Dict[str, Any]

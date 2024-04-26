@@ -3,7 +3,7 @@ import polars as pl
 import sys
 
 
-########## Process Data ##########
+########## Processing Data ##########
 sys.path.append('src/')
 from paths.path import raw_data_path, tag_dict_path
 from functions.process import validate_tags_pl, validate_dtypes_pl, change_names_pl

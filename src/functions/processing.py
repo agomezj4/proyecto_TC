@@ -1,13 +1,12 @@
 from typing import Dict, List, Any
 
 import polars as pl
-import unicodedata
 import logging
+import re
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-
 
 
 # 1. Validar tag de las fuentes
@@ -207,6 +206,114 @@ def delete_accents_pl(df: pl.DataFrame) -> pl.DataFrame:
     return df
 
 # 7. Re categorizar columnas
+def standardize_binary_values_pl(
+        df: pl.DataFrame,
+        params: Dict[str, Any]
+) -> pl.DataFrame:
+    """
+    Estandariza valores en columnas específicas de un DataFrame de Polars, transformando
+    las diferentes formas de "sí" y "no" en valores binarios 1 y 0, respectivamente, y transformando
+    los nulos o cadenas vacías a 0 en columnas específicas.
 
+    Parameters
+    ----------
+    df : polars.DataFrame
+        DataFrame de polars sobre el cual se realizarán las transformaciones.
+    params: Dict[str, Any]
+        Diccionario de parámetros processing.
+
+    Returns
+    -------
+    pl.DataFrame: DataFrame con las columnas transformadas a valores binarios.
+    """
+    logger.info("Iniciando la estandarización de valores binarios...")
+
+    # Columnas a transformar
+    columns_to_transform1 = params['campos_binarios1']
+    columns_to_transform2 = params['campos_binarios2']
+
+    # Expresiones regulares comunes para "sí" y "no"
+    yes_regex = r'\bs[ií]|\byes\b'  # Regex para capturar variaciones de "sí"
+    no_regex = r'\bno\b'            # Regex para capturar variaciones de "no"
+
+    # Lista de transformaciones para columns_to_transform1
+    transformations_group1 = [
+        pl.when(pl.col(col).is_null())
+        .then(pl.lit(0).cast(pl.Int64))
+        .when(pl.col(col).str.to_lowercase().str.contains(yes_regex))
+        .then(pl.lit(1).cast(pl.Int64))
+        .otherwise(
+            pl.when(pl.col(col).str.to_lowercase().str.contains(no_regex))
+            .then(pl.lit(0).cast(pl.Int64))
+            .otherwise(pl.lit(None))
+        )
+        .alias(col)
+        for col in columns_to_transform1
+    ]
+
+    # Lista de transformaciones para columns_to_transform2
+    transformations_group2 = [
+        pl.when(pl.col(col).str.to_lowercase().str.contains(yes_regex))
+        .then(pl.lit(1).cast(pl.Int64))
+        .when(pl.col(col).str.to_lowercase().str.contains(no_regex))
+        .then(pl.lit(0).cast(pl.Int64))
+        .otherwise(pl.lit(None))
+        .alias(col)
+        for col in columns_to_transform2
+    ]
+
+    # Aplicar todas las transformaciones en una sola operación
+    df = df.with_columns(transformations_group1 + transformations_group2)
+
+    logger.info("Valores binarios estandarizados!")
+
+    return df
 
 # 7. Nulos
+def impute_missing_values_pl(df: pl.DataFrame) -> pl.DataFrame:
+    """
+    Imputa los valores faltantes en un DataFrame de Polars basado en el tipo de cada columna.
+    Para columnas de tipo string, se usa la moda; para columnas int64, se usa la mediana
+    (redondeada si es necesario); y para columnas float64, se usa la mediana.
+
+    Parameters
+    ----------
+    df : pl.DataFrame
+        DataFrame de Polars sobre el cual se realizarán las imputaciones.
+
+    Returns
+    -------
+    pl.DataFrame
+        DataFrame con los valores faltantes imputados.
+    """
+    logger.info("Iniciando la imputación de valores faltantes...")
+
+    # Identificar columnas con valores nulos
+    columns_with_nulls = [col for col in df.columns if df[col].is_null().sum() > 0]
+
+    # Procesar cada columna con valores nulos
+    for col in columns_with_nulls:
+        col_type = df[col].dtype
+
+        if col_type == pl.Utf8:
+            # Imputar con la moda para columnas de tipo string
+            mode_value = df[col].mode().to_list()[0]  # Obtener la moda como un valor en una lista
+            df = df.with_columns(pl.col(col).fill_null(mode_value).alias(col))
+            logger.info(f"Imputados valores nulos en la columna '{col}' con la moda: {mode_value}")
+
+        elif col_type == pl.Int64:
+            # Imputar con la mediana para columnas de tipo int64
+            median_value = df[col].median()
+            median_value = round(median_value)  # Redondear al entero más cercano si es necesario
+            df = df.with_columns(pl.col(col).fill_null(median_value).alias(col))
+            logger.info(f"Imputados valores nulos en la columna '{col}' con la mediana redondeada: {median_value}")
+
+        elif col_type == pl.Float64:
+            # Imputar con la mediana para columnas de tipo float64
+            median_value = df[col].median()
+            df = df.with_columns(pl.col(col).fill_null(median_value).alias(col))
+            logger.info(f"Imputados valores nulos en la columna '{col}' con la mediana: {median_value}")
+
+    logger.info("Imputación de valores faltantes completada!")
+
+    return df

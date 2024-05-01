@@ -1,11 +1,12 @@
 ## Processing parameters
-campos_recategorizacion:
- - mora
- - posee_vivienda
- - posee_vehiculo
+campos_binarios1:
  - ah
  - cc
  - cdt
 
+campos_binarios2:
+ - mora
+ - posee_vivienda
+ - posee_vehiculo
 
 

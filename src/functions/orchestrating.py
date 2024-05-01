@@ -7,7 +7,7 @@ from paths.path import raw_data_path, parameters_processing_path
 from functions.processing import validate_tags_pl, validate_dtypes_pl
 
 yaml_files = [
-    ('parameters_processing', parameters_processing_path),
+    ('processing', parameters_processing_path),
 ]
 
 parameters = {}

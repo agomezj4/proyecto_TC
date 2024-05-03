@@ -1,0 +1,8 @@
+## Data paths parameters
+tag_dict_path: tag_dict_tc.xlsx
+
+raw_data_path: data_raw.csv
+
+processed_data_path: data_processing.csv
+
+feature_engineered_data_path: data_featuring.csv

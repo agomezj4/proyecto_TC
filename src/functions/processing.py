@@ -1,8 +1,7 @@
-from typing import Dict, List, Any
+from typing import Dict, Any
 
 import polars as pl
 import logging
-import re
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
@@ -119,7 +118,7 @@ def change_names_pl(df: pl.DataFrame, tag_dict: pl.DataFrame) -> pl.DataFrame:
     # Cambia los nombres de las columnas según el tag dictionary "raw"
     df = df.rename(col_mapping)
 
-    logger.info("Nombres de columnas cambiados")
+    logger.info("Nombres de columnas cambiados!")
 
     return df
 
@@ -269,7 +268,7 @@ def standardize_binary_values_pl(
 
     return df
 
-# 7. Nulos
+# 7. Imputación Nulos
 def impute_missing_values_pl(df: pl.DataFrame) -> pl.DataFrame:
     """
     Imputa los valores faltantes en un DataFrame de Polars basado en el tipo de cada columna.

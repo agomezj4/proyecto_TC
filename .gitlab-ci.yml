@@ -2,8 +2,11 @@ stages:
   - preparation
 
 preparation:
+  image: ruby:3.1
   stage: preparation
+  before_script:
+    - apt-get update -y && apt-get install -y python3 python3-pip
   script:
     - echo "INICIO ETAPA PROCESAMIENTO DE DATOS..."
-    - python __main__.py preparation
+    - python3 __main__.py preparation
     - echo "FIN ETAPA PROCESAMIENTO DE DATOS!"

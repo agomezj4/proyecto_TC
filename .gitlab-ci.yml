@@ -5,6 +5,7 @@
     - source proyecto_tc/bin/activate
     - pip3 install polars
     - pip3 install PyYAML
+    - pip3 install xlsx2csv
 
 stages:
   - preparation

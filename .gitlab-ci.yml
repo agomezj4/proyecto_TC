@@ -4,7 +4,7 @@
     - python3 -m venv proyecto_tc
     - source proyecto_tc/bin/activate
     - pip3 install polars
-    - pip3 install yaml
+    - pip3 install PyYAML
 
 stages:
   - preparation

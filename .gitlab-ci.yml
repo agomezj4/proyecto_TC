@@ -4,5 +4,6 @@ stages:
 preparation:
   stage: preparation
   script:
-    - echo "Procesamiento de Datos"
+    - echo "INICIO ETAPA PROCESAMIENTO DE DATOS..."
     - python __main__.py preparation
+    - echo "FIN ETAPA PROCESAMIENTO DE DATOS!"

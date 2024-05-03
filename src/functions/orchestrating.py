@@ -42,15 +42,12 @@ for yaml_file in yaml_files:
 
 def run_processing():
 
-    logger.info("INICIO ETAPA PROCESAMIENTO DE DATOS...")
-
-    # Cargar datos
+    # Cargar datoss
     tag_dict_path = os.path.join(data_raw_directory, parameters['parameters_catalog']['tag_dict_path'])
     raw_data_path = os.path.join(data_raw_directory, parameters['parameters_catalog']['raw_data_path'])
 
     tag_dict = pl.read_excel(tag_dict_path)
     data_raw = pl.read_csv(raw_data_path)
-    logger.info("Tag dict y datos raw cargados correctamente...")
 
     # Validar etiquetas
     data_validate_tags = validate_tags_pl(data_raw, tag_dict)
@@ -76,7 +73,5 @@ def run_processing():
     # Guardar datos procesados
     processed_data_path = os.path.join(data_processed_directory, parameters['parameters_catalog']['processed_data_path'])
     data_processing.write_csv(processed_data_path)
-    logger.info("Datos procesados guardados correctamente!")
 
-    logger.info("FIN ETAPA PROCESAMIENTO DE DATOS!")
 

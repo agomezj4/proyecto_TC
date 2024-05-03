@@ -1,0 +1,10 @@
+stages:
+  - preparation
+
+preparation:
+  stage: preparation
+  script:
+    - echo "Procesamiento de Datos"
+    - python __main__.py preparation
+
+

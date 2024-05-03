@@ -1,0 +1,22 @@
+name: Sync Repo to GitLab
+
+on:
+  push:
+    branches:
+      - main
+      - processing
+      - pruebas
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3  # Utiliza la última versión estable de checkout.
+      - name: Sync to GitLab
+        uses: keninkujovic/gitlab-sync@2.0.0
+        with:
+          gitlab_url: ${{ secrets.GITLAB_URL }}
+          username: ${{ secrets.USERNAME }}
+          gitlab_pat: ${{ secrets.GITLAB_PAT }}
+

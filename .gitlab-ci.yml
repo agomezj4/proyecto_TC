@@ -1,0 +1,22 @@
+.common_setup: &common_setup
+  before_script:
+    - apt-get update -y && apt-get install -y python3 python3-pip python3-venv
+    - python3 -m venv proyecto_tc
+    - source proyecto_tc/bin/activate
+    - pip3 install polars
+    - pip3 install PyYAML
+    - pip3 install xlsx2csv
+
+stages:
+  - preparation
+  - test
+  - deploy
+
+preparation:
+  image: ruby:3.1
+  stage: preparation
+  <<: *common_setup
+  script:
+    - echo "INICIO ETAPA PROCESAMIENTO DE DATOS..."
+    - proyecto_tc/bin/python3 __main__.py preparation
+    - echo "FIN ETAPA PROCESAMIENTO DE DATOS!"

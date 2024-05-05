@@ -3,6 +3,7 @@ from typing import Dict, List, Any
 import polars as pl
 import pandas as pd
 import logging
+import re
 
 from sklearn.ensemble import RandomForestClassifier, BaggingClassifier
 from sklearn.model_selection import train_test_split
@@ -89,7 +90,7 @@ def add_target_variable_pl(
     df12 : polars.DataFrame
         DataFrame de polars que contiene la variable objetivo.
     params: Dict[str, Any]
-        Diccionario de parámetros processing.
+        Diccionario de parámetros featuring.
 
     Returns
     -------
@@ -112,68 +113,317 @@ def add_target_variable_pl(
     return df
 
 
-# 3. Selección de características
-def random_forest_selection(
-        df: pd.DataFrame,
-        params: Dict[str, Any]
-) -> pd.DataFrame:
+# 3. Encoding de variables categóricas
+def cumulatively_categorise_pl(
+        column: pl.Series,
+        params: Dict[str, Any],
+) -> pl.Series:
     """
-    Entrena un modelo RandomForest y calcula la importancia de las características
+    Categoriza acumulativamente una columna de un DataFrame de Polars, reemplazando los valores
+    que no cumplen con el umbral especificado.
+
+    Parameters
+    ----------
+    column : polars.Series
+        Columna de un DataFrame de Polars que se categorizará acumulativamente.
+    params: Dict[str, Any]
+        Diccionario de parámetros featuring.
+
+    Returns
+    -------
+    polars.Series
+        Columna de un DataFrame de Polars con la categorización acumulativa aplicada.
+    """
+    logger.info(f"Empieza el proceso de categorización acumulativa para el campo '{column.name}'...")
+
+    # Parámetros
+    threshold = params['threshold']
+    replacement_value = params['value']
+
+    # Calculamos el valor de umbral basado en el porcentaje dado
+    threshold_value = int(threshold * column.len())
+
+    # Calculamos los conteos y ordenamos de forma descendente
+    counts = column.to_frame().groupby(column).agg(pl.count()).sort(by=column.name, descending=True)
+
+    # Acumulamos las frecuencias hasta llegar o superar el umbral
+    counts = counts.with_columns(pl.col("count").cumsum().alias("cumulative_count"))
+    valid_categories = counts.filter(pl.col("cumulative_count") <= threshold_value).select(column.name)
+
+    # Creamos una lista con las categorías válidas más el valor de reemplazo
+    valid_categories = valid_categories.to_series().to_list() + [replacement_value]
+
+    # Reemplazamos los valores que no están en la lista de categorías válidas
+    new_column = column.apply(lambda x: x if x in valid_categories else replacement_value, return_dtype=column.dtype)
+
+    logger.info(f"Categorización acumulativa completada para el campo '{column.name}'!")
+
+    return new_column
+
+
+def replace_spaces_with_underscores(category):
+    return re.sub(r'\s+', '_', category)
+
+
+def one_hot_encoding_pl(
+        df: pl.DataFrame,
+        params: Dict[str, Any],
+) -> pl.DataFrame:
+    """
+    Aplica One Hot Encoding a las columnas especificadas en el diccionario de parámetros.
+
+    Parameters
+    ----------
+    df : polars.DataFrame
+        DataFrame de polars al que se le aplicará One Hot Encoding.
+    params: Dict[str, Any]
+        Diccionario de parámetros featuring.
+
+    Returns
+    -------
+    pl.DataFrame: DataFrame con las columnas transformadas.
+    """
+    logger.info("Iniciando One Hot Encoding...")
+
+    # Parámetros
+    cum_cat = params['cum_cat']
+    one_hot_encoder = [nombre for nombre, dtype in df.schema.items() if dtype == pl.Utf8]
+
+    for var in one_hot_encoder:
+        # `cumulatively_categorise` es una función definida que categoriza y luego transforma en códigos enteros.
+        df = df.with_columns(
+            cumulatively_categorise_pl(df[var], cum_cat).alias(var)
+        )
+
+        # Realizando One Hot Encoding
+        df = df.with_columns([
+            pl.when(df[var] == category)
+            .then(1)
+            .otherwise(0)
+            .alias(f"{var}_{replace_spaces_with_underscores(category)}")
+            for category in df[var].unique().to_list()
+        ]).drop(var)
+
+    logger.info("One Hot Encoding completado!")
+
+    return df
+
+
+# 4. Selección de características
+def add_random_variables_pd(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Agrega dos variables aleatorias al DataFrame
 
     Parameters
     ----------
     df : pandas.DataFrame
-        DataFrame de pandas al que se le calculará la importancia de las características
-    params: Dict[str, Any]
-        Diccionario de parámetros
+        DataFrame al que se agregarán las variables aleatorias.
 
     Returns
     -------
-    pd.DataFrame: DataFrame con la importancia de las características calculadas
+    pd.DataFrame
+        DataFrame con las variables aleatorias agregadas.
     """
 
+    df["var_aleatoria_uniforme"] = np.random.rand(len(df))
+    df["var_aleatoria_entera"] = np.random.randint(1, 5, size=len(df))
+
+    return df
+
+def random_forest_selection_pl(
+        df: pl.DataFrame,
+        params: Dict[str, Any],
+) -> pl.DataFrame:
+    """
+    Entrena un modelo RandomForest y calcula la importancia de las características usando Polars.
+
+    Parameters
+    ----------
+    df : pl.DataFrame
+        DataFrame de Polars al que se le calculará la importancia de las características.
+    params: Dict[str, Any]
+        Diccionario de parámetros featuring.
+
+    Returns
+    -------
+    pl.DataFrame: DataFrame con la importancia de las características calculadas.
+    """
+
+    logger.info("Iniciando la selección de características con Random Forest...")
+
+    # Parámetros
+    rf_selection = params['rf_selection']
+
+    # Convertimos a pandas para usar train_test_split
+    df_pandas = df.to_pandas()
+
     # Divide los datos en conjuntos de entrenamiento y prueba
-    X = df.drop(columns=rf_selection['target'])
-    y = df[rf_selection['target']]
+    X = df_pandas.drop(columns=[rf_selection['target'], rf_selection['id']])
+    y = df_pandas[rf_selection['target']]
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=rf_selection['test_size'],
                                                         random_state=rf_selection['seed'])
 
     # Agregar las variables aleatorias al DataFrame
-    X_train = add_random_variables(X_train)
+    X_train = add_random_variables_pd(X_train)
 
     # Crea un clasificador Bagging
-    bag_class = BaggingClassifier(estimator=RandomForestClassifier(    n_estimators=rf_selection['n_estimators'],
+    bag_class = BaggingClassifier(estimator=RandomForestClassifier(
+        n_estimators=rf_selection['n_estimators'],
         max_depth=rf_selection['max_depth'],
-        random_state=rf_selection['seed'])
-
+        random_state=rf_selection['seed']))
 
     # Ajusta el modelo a tus datos de entrenamiento
     bag_class.fit(X_train, y_train)
 
     # Calcula la importancia de las características
-    feature_importance = bag_class.feature_importances_
+    feature_importance = np.mean([
+        tree.feature_importances_ for tree in bag_class.estimators_
+    ], axis=0)
 
     # Obtén los nombres de las características
-    feature_names = X_train.columns
+    feature_names = X_train.columns.tolist()
 
     # Crea un DataFrame para mostrar la importancia de las características
-    feature_importance_df = pd.DataFrame(
-        {"Feature": feature_names, "Importance": feature_importance}
-    )
+    feature_importance_df = pl.DataFrame({
+        "Feature": feature_names,
+        "Importance": feature_importance
+    })
 
     # Ordena el DataFrame por importancia de manera descendente
-    feature_importance_df = feature_importance_df.sort_values(
-        by="Importance", ascending=False
-    )
+    feature_importance_df = feature_importance_df.sort("Importance", descending=True)
 
     # Obtener la importancia de las variables aleatorias
-    random_var_imp_0_1 = \
-    feature_importance_df.loc[feature_importance_df["Feature"] == "var_aleatoria_uniforme", "Importance"].values[0]
-    random_var_imp_1_4 = \
-    feature_importance_df.loc[feature_importance_df["Feature"] == "var_aleatoria_entera", "Importance"].values[0]
+    random_var_imp_0_1 = feature_importance_df.filter(pl.col("Feature") == "var_aleatoria_uniforme").select("Importance").to_numpy()[0][0]
+    random_var_imp_1_4 = feature_importance_df.filter(pl.col("Feature") == "var_aleatoria_entera").select("Importance").to_numpy()[0][0]
 
     # Eliminar las variables con importancia menor que las variables aleatorias
-    feature_importance_df = feature_importance_df[(feature_importance_df["Importance"] > random_var_imp_0_1) & (
-                feature_importance_df["Importance"] > random_var_imp_1_4)]
+    feature_importance_df = feature_importance_df.filter(
+        (pl.col("Importance") > random_var_imp_0_1) & (pl.col("Importance") > random_var_imp_1_4))
+
+    logger.info("Selección de características con Random Forest completada!")
 
     return feature_importance_df
+
+
+def entropy(p):
+    """
+    Calcula la entropía de un conjunto de probabilidades.
+
+    Parameters
+    ----------
+    p : list
+        Lista de probabilidades.
+
+    Returns
+    -------
+    float: Valor de la entropía.
+    """
+    return -np.sum([pi * np.log2(pi) if pi > 0 else 0 for pi in p])
+
+
+def conditional_entropy_selection_pl(
+        df: pl.DataFrame,
+        params: Dict[str, Any],
+) -> pl.DataFrame:
+    """
+    Calcula la entropía condicional y la ganancia de información para un
+    conjunto de variables usando polars.
+
+    Parameters
+    ----------
+    df : polars.DataFrame
+        DataFrame de polars al que se le calculará la entropía condicional.
+    params: Dict[str, Any]
+        Diccionario de parámetros featuring.
+
+    Returns
+    -------
+    pl.DataFrame: DataFrame con la entropía condicional y la ganancia de
+    información calculadas.
+    """
+    logger.info("Iniciando la selección de características con Entropía Condicional...")
+
+    # Parámetros
+    target = params['ce_selection']['target']
+    id = params['ce_selection']['id']
+
+    # Eliminar id y target
+    df = df.drop(id)
+
+    # Entropía variable objetivo
+    des = df.groupby(target).agg(pl.count().alias('count'))
+    pr = des['count'] / df.height  # Obtener el número total de filas con df.height()
+    Ho = entropy(pr.to_numpy())
+
+    # Cálculo de entropía condicional
+    feature_names, feature_importance = [], []
+
+    for columna in df.columns:
+        if columna == target:
+            continue
+        H = 0
+        feature_names.append(columna)
+
+        # Cálculo de entropía condicional en el bucle for
+        grouped = df.groupby(columna).agg(pl.col(target).count().alias("count"))
+        # Aseguramos que cada columna sea accesible por su nombre para evitar confusiones futuras
+        grouped = grouped.with_columns(pl.col(columna).alias('value'))
+        for row in grouped.rows():
+            # Usamos índices de acuerdo a cómo están ordenadas las columnas en el DataFrame agrupado
+            value, group_count = row[0], row[1]  # Asumiendo que 'columna' y 'count' son las primeras dos columnas
+            df_i = df.filter(pl.col(columna) == value)
+            des = df_i.groupby(target).agg(pl.count().alias('count'))
+            pr = des['count'] / group_count
+            Hcond = entropy(pr.to_numpy())
+            prob = group_count / df.height  # Usamos la propiedad height de Polars directamente
+            H += Hcond * prob
+
+        feature_importance.append(Ho - H)
+
+    data_entropia = pl.DataFrame({'Feature': feature_names, 'Importance': feature_importance})
+
+    df_entropia = data_entropia.sort(by='Importance', descending=True)
+
+    logger.info("Selección de características con Entropía Condicional completada!")
+
+    return df_entropia
+
+
+def intersect_top_features_pl(
+    df1: pl.DataFrame,
+    df2: pl.DataFrame,
+    params: Dict[str, Any],
+) -> set:
+    """
+    Obtiene las características más importantes de dos DataFrames basado en un diccionario de parámetros
+
+    Parameters
+    ----------
+    df1, df2: polars.DataFrame
+        DataFrames de polars de los que se obtendrán las características más importantes
+    params: Dict[str, Any]
+        Diccionario de parámetros featuring.
+
+    Returns
+    -------
+    set: Conjunto con las características más importantes.
+    """
+    logger.info("Intersección de las feature importence por los métodos aplicados...")
+
+    # Parámetros
+    n = params['features_importance']['top_features']
+
+    # Obtén las n características más importantes del dataframe
+    top_features_df1 = set(df1.select('Feature').limit(n).to_pandas()['Feature'])
+    top_features_df2 = set(df2.select('Feature').limit(n).to_pandas()['Feature'])
+
+    # Intersecta los conjuntos para obtener las características comunes a los dos dataframes
+    top_features = top_features_df1.intersection(top_features_df2)
+
+    logger.info("Intersección de las feature importence completada!")
+
+    # Retorna el conjunto con las características más importantes
+    return top_features
+
+
+# validar que en el top_features no esta id ni taget. toma el df de one hot encoding y filtra solo las columnas de top_features + target.

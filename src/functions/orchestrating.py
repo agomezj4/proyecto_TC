@@ -20,7 +20,11 @@ from functions.processing import (validate_tags_pl,
                                   impute_missing_values_pl)
 
 from functions.featuring import (new_features_pl,
-                                 add_target_variable_pl)
+                                 add_target_variable_pl,
+                                 one_hot_encoding_pl,
+                                 random_forest_selection_pl,
+                                 conditional_entropy_selection_pl,
+                                 intersect_top_features_pl)
 
 
 # Directorios para los archivos de parámetros y los datos
@@ -90,6 +94,20 @@ def run_featuring():
     target_path = os.path.join(target_directory, parameters['parameters_catalog']['target_column_path'])
     target = pl.read_csv(target_path)
     add_target_variable = add_target_variable_pl(data_features, target, parameters['parameters_featuring'])
+
+    # Codificación one-hot
+    data_one_hot = one_hot_encoding_pl(add_target_variable, parameters['parameters_featuring'])
+
+    # Selección de características con Random Forest
+    data_random_forest = random_forest_selection_pl(data_one_hot, parameters['parameters_featuring'])
+
+    # Selección de características con Entropía Condicional
+    data_conditional_entropy = conditional_entropy_selection_pl(data_one_hot, parameters['parameters_featuring'])
+
+    # Intersección de las mejores características
+    data_features = intersect_top_features_pl(data_random_forest, data_conditional_entropy, parameters['parameters_featuring'])
+
+
 
 
     # Guardar datos de características

@@ -19,11 +19,15 @@ from functions.processing import (validate_tags_pl,
                                   standardize_binary_values_pl,
                                   impute_missing_values_pl)
 
+from functions.featuring import (new_features_pl,
+                                 add_target_variable_pl)
+
 
 # Directorios para los archivos de parámetros y los datos
 parameters_directory = os.path.join(project_root, 'src', 'parameters')
 data_raw_directory = os.path.join(project_root, 'data', 'raw')
 data_processed_directory = os.path.join(project_root, 'data', 'processed')
+target_directory = os.path.join(project_root, 'data', 'processed')
 data_features_directory = os.path.join(project_root, 'data', 'features')
 
 
@@ -42,7 +46,7 @@ for yaml_file in yaml_files:
 
 def run_processing():
 
-    # Cargar datoss
+    # Cargar datos
     tag_dict_path = os.path.join(data_raw_directory, parameters['parameters_catalog']['tag_dict_path'])
     raw_data_path = os.path.join(data_raw_directory, parameters['parameters_catalog']['raw_data_path'])
 
@@ -74,4 +78,20 @@ def run_processing():
     processed_data_path = os.path.join(data_processed_directory, parameters['parameters_catalog']['processed_data_path'])
     data_processing.write_csv(processed_data_path)
 
+def run_featuring():
+    # Cargar datos procesados
+    processed_data_path = os.path.join(data_processed_directory, parameters['parameters_catalog']['processed_data_path'])
+    data_processed = pl.read_csv(processed_data_path)
 
+    # Generar características
+    data_features = new_features_pl(data_processed, parameters['parameters_featuring'])
+
+    # Añadir target al conjunto de datos
+    target_path = os.path.join(target_directory, parameters['parameters_catalog']['target_column_path'])
+    target = pl.read_csv(target_path)
+    add_target_variable = add_target_variable_pl(data_features, target, parameters['parameters_featuring'])
+
+
+    # Guardar datos de características
+    features_data_path = os.path.join(data_features_directory, parameters['parameters_catalog']['features_data_path'])
+    data_features.write_csv(features_data_path)

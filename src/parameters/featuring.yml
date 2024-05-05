@@ -1,1 +1,36 @@
 ## Featuring parameters
+campos_new_features:
+ - buro_max_deuda
+ - vlr_ingresos
+ - ratio_ingresos_deuda # New feature 1
+ - buro_num_creditos
+ - ratio_deuda_creditos # New feature 2
+ - dias_ultima_camp
+ - categoria_ultima_camp # New feature 3
+ - edad
+ - ingresos_per_capita # New feature 4
+ - perfil_riesgo
+ - estado_civil
+ - riesgo_estado_civil # New feature 5
+
+limite_ultima_camp:
+ - 30
+ - 90
+
+categorias_ultima_camp:
+ - reciente
+ - moderado
+ - antiguo
+
+target:
+ - id_cliente
+ - y
+ - target
+
+rf_selection: {
+    'target': 'y',
+    'test_size': 0.3,
+    'seed': 42,
+    'n_estimators': 100,
+    'max_depth': 4,
+}

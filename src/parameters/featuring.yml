@@ -1,1 +1,62 @@
 ## Featuring parameters
+
+# Parámetros para new_features_pl
+campos_new_features:
+ - buro_max_deuda
+ - vlr_ingresos
+ - ratio_ingresos_deuda # New feature 1
+ - buro_num_creditos
+ - ratio_deuda_creditos # New feature 2
+ - dias_ultima_camp
+ - categoria_ultima_camp # New feature 3
+ - edad
+ - ingresos_per_capita # New feature 4
+ - perfil_riesgo
+ - estado_civil
+ - riesgo_estado_civil # New feature 5
+
+limite_ultima_camp:
+ - 30
+ - 90
+
+categorias_ultima_camp:
+ - reciente
+ - moderado
+ - antiguo
+
+
+# Parámetros para add_target_variable_pl
+target:
+ - id_cliente
+ - y
+ - target
+
+
+# Parámetros para cumulatively_categorise_pl
+cum_cat: {
+    'threshold': 0.75,
+    'value': 'otro'
+}
+
+
+#Parámetros para random_forest_selection_pl
+rf_selection: {
+    'id': 'id_cliente',
+    'target': 'target',
+    'test_size': 0.3,
+    'seed': 42,
+    'n_estimators': 100,
+    'max_depth': 4,
+}
+
+
+#Parámetros para conditional_entropy_selection_pl
+ce_selection: {
+    'id': 'id_cliente',
+    'target': 'target'
+}
+
+#Parámetros para intersect_top_features
+features_importance: {
+    'top_features': 50
+}

@@ -5,4 +5,6 @@ raw_data_path: data_raw.csv
 
 processed_data_path: data_processing.csv
 
+target_column_path: target.csv
+
 feature_engineered_data_path: data_featuring.csv

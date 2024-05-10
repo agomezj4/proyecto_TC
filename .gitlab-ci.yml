@@ -9,8 +9,7 @@
 
 stages:
   - preparation
-  - test
-  - deploy
+  - feature_engineering
 
 preparation:
   image: ruby:3.1
@@ -20,3 +19,12 @@ preparation:
     - echo "INICIO ETAPA PROCESAMIENTO DE DATOS..."
     - proyecto_tc/bin/python3 __main__.py preparation
     - echo "FIN ETAPA PROCESAMIENTO DE DATOS!"
+
+feature_engineering:
+    image: ruby:3.1
+    stage: feature_engineering
+    <<: *common_setup
+    script:
+        - echo "INICIO ETAPA INGENIERÍA DE CARACTERÍSTICAS..."
+        - proyecto_tc/bin/python3 __main__.py feature_engineering
+        - echo "FIN ETAPA INGENIERÍA DE CARACTERÍSTICAS!"

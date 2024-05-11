@@ -53,17 +53,17 @@ def new_features_pl(
         .otherwise(pl.col(campo[0]) / pl.col(campo[3])).alias(campo[4]),
 
         # Categorización de los días desde la última campaña
-        pl.when(pl.col(campo[5]) <= limite_categoria_ultima_camp[0])
-        .then(pl.lit('reciente').alias(campo[6]))
-        .when(pl.col(campo[5]).is_between(limite_categoria_ultima_camp[0] + 1, limite_categoria_ultima_camp[1]))
-        .then(pl.lit('moderado').alias(campo[6]))
-        .otherwise(pl.lit('antiguo').alias(campo[6])),
+        # pl.when(pl.col(campo[5]) <= limite_categoria_ultima_camp[0])
+        # .then(pl.lit('reciente').alias(campo[6]))
+        # .when(pl.col(campo[5]).is_between(limite_categoria_ultima_camp[0] + 1, limite_categoria_ultima_camp[1]))
+        # .then(pl.lit('moderado').alias(campo[6]))
+        # .otherwise(pl.lit('antiguo').alias(campo[6])),
 
         # Ingresos Per Cápita
         (pl.col(campo[1]) / pl.col(campo[7])).alias(campo[8]),
 
-        # Combinación de Perfil de Riesgo y Estado Civil
-        pl.concat_str([pl.col(campo[9]).cast(str), pl.col(campo[10])]).alias(campo[11]),
+        # # Combinación de Perfil de Riesgo y Estado Civil
+        # pl.concat_str([pl.col(campo[9]).cast(str), pl.col(campo[10])]).alias(campo[11]),
     ]
 
     # Aplicar todas las transformaciones en una sola operación
@@ -224,7 +224,10 @@ def add_random_variables_pd(df: pd.DataFrame) -> pd.DataFrame:
     pd.DataFrame
         DataFrame con las variables aleatorias agregadas.
     """
+    # Establecer la semilla fija en 42
+    np.random.seed(42)
 
+    # Agregar variables aleatorias
     df["var_aleatoria_uniforme"] = np.random.rand(len(df))
     df["var_aleatoria_entera"] = np.random.randint(1, 5, size=len(df))
 
@@ -351,9 +354,16 @@ def conditional_entropy_selection_pl(
     df = df.drop(id)
 
     # Entropía variable objetivo
-    des = df.groupby(target).agg(pl.count().alias('count'))
+    des = df.group_by(target).agg(pl.len().alias('count'))
     pr = des['count'] / df.height  # Obtener el número total de filas con df.height()
     Ho = entropy(pr.to_numpy())
+
+    # Convertir df a pandas para agregar las variables aleatorias
+    df_pandas = df.to_pandas()
+    df_pandas = add_random_variables_pd(df_pandas)
+
+    # Convertir de nuevo a DataFrame de Polars
+    df = pl.DataFrame(df_pandas)
 
     # Cálculo de entropía condicional
     feature_names, feature_importance = [], []
@@ -365,14 +375,14 @@ def conditional_entropy_selection_pl(
         feature_names.append(columna)
 
         # Cálculo de entropía condicional en el bucle for
-        grouped = df.groupby(columna).agg(pl.col(target).count().alias("count"))
+        grouped = df.group_by(columna).agg(pl.col(target).count().alias("count"))
         # Aseguramos que cada columna sea accesible por su nombre para evitar confusiones futuras
         grouped = grouped.with_columns(pl.col(columna).alias('value'))
         for row in grouped.rows():
             # Usamos índices de acuerdo a cómo están ordenadas las columnas en el DataFrame agrupado
             value, group_count = row[0], row[1]  # Asumiendo que 'columna' y 'count' son las primeras dos columnas
             df_i = df.filter(pl.col(columna) == value)
-            des = df_i.groupby(target).agg(pl.count().alias('count'))
+            des = df_i.group_by(target).agg(pl.len().alias('count'))
             pr = des['count'] / group_count
             Hcond = entropy(pr.to_numpy())
             prob = group_count / df.height  # Usamos la propiedad height de Polars directamente
@@ -380,9 +390,21 @@ def conditional_entropy_selection_pl(
 
         feature_importance.append(Ho - H)
 
+    # Crear un DataFrame con la importancia de las características
     data_entropia = pl.DataFrame({'Feature': feature_names, 'Importance': feature_importance})
 
+    # Ordenar el DataFrame por importancia de manera descendente
     df_entropia = data_entropia.sort(by='Importance', descending=True)
+
+    # Obtener la importancia de las variables aleatorias
+    random_var_imp_0_1 = \
+    df_entropia.filter(pl.col("Feature") == "var_aleatoria_uniforme").select("Importance").to_numpy()[0][0]
+    random_var_imp_1_4 = \
+    df_entropia.filter(pl.col("Feature") == "var_aleatoria_entera").select("Importance").to_numpy()[0][0]
+
+    # Eliminar las variables con importancia menor que las variables aleatorias
+    df_entropia = df_entropia.filter(
+        (pl.col("Importance") > random_var_imp_0_1) & (pl.col("Importance") > random_var_imp_1_4))
 
     logger.info("Selección de características con Entropía Condicional completada!")
 

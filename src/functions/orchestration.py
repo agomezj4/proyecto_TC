@@ -105,10 +105,7 @@ def run_featuring():
     data_conditional_entropy = conditional_entropy_selection_pl(data_one_hot, parameters['parameters_featuring'])
 
     # Intersección de las mejores características
-    data_features = intersect_top_features_pl(data_random_forest, data_conditional_entropy, parameters['parameters_featuring'])
-
-
-
+    data_features = intersect_top_features_pl(data_random_forest, data_conditional_entropy, data_one_hot, parameters['parameters_featuring'])
 
     # Guardar datos de características
     features_data_path = os.path.join(data_features_directory, parameters['parameters_catalog']['features_data_path'])

@@ -5,10 +5,15 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="d13f5d99-f4cd-48d9-91a1-77c204cf7c62" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/environment.yml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/functions/models.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/processed/target.csv" beforeDir="false" afterPath="$PROJECT_DIR$/data/processed/target.csv" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/notebooks/01_agomezj-pruebas.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/01_agomezj-pruebas.ipynb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/functions/featuring.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/functions/featuring.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/requirements.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/functions/orchestrating.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/functions/orchestration.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/functions/scoring.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/functions/model_input.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/functions/training.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/functions/model_selection.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/parameters/featuring.yml" beforeDir="false" afterPath="$PROJECT_DIR$/src/parameters/featuring.yml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -18,8 +23,8 @@
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
-        <option value="Python Script" />
         <option value="Jupyter Notebook" />
+        <option value="Python Script" />
       </list>
     </option>
   </component>
@@ -93,7 +98,7 @@
       <workItem from="1714174820636" duration="84439000" />
       <workItem from="1715203386411" duration="407000" />
       <workItem from="1715203835914" duration="2657000" />
-      <workItem from="1715295657932" duration="15547000" />
+      <workItem from="1715295657932" duration="21906000" />
     </task>
     <servers />
   </component>
@@ -118,7 +123,7 @@
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/src/functions/orchestrating.py</url>
+          <url>file://$PROJECT_DIR$/src/functions/orchestration.py</url>
           <option name="timeStamp" value="1" />
         </line-breakpoint>
       </breakpoints>

@@ -32,7 +32,7 @@ parameters_directory = os.path.join(project_root, 'src', 'parameters')
 data_raw_directory = os.path.join(project_root, 'data', 'raw')
 data_processed_directory = os.path.join(project_root, 'data', 'processed')
 target_directory = os.path.join(project_root, 'data', 'processed')
-data_features_directory = os.path.join(project_root, 'data', 'features')
+data_features_directory = os.path.join(project_root, 'data', 'featured')
 
 
 # Lista todos los archivos YAML en el directorio especificado

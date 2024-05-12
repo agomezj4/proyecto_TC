@@ -4,10 +4,10 @@ import polars as pl
 import pandas as pd
 import logging
 import re
+import numpy as np
 
 from sklearn.ensemble import RandomForestClassifier, BaggingClassifier
 from sklearn.model_selection import train_test_split
-import numpy as np
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)

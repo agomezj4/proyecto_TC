@@ -53,17 +53,17 @@ def new_features_pl(
         .otherwise(pl.col(campo[0]) / pl.col(campo[3])).alias(campo[4]),
 
         # Categorización de los días desde la última campaña
-        pl.when(pl.col(campo[5]) <= limite_categoria_ultima_camp[0])
-        .then(pl.lit('reciente').alias(campo[6]))
-        .when(pl.col(campo[5]).is_between(limite_categoria_ultima_camp[0] + 1, limite_categoria_ultima_camp[1]))
-        .then(pl.lit('moderado').alias(campo[6]))
-        .otherwise(pl.lit('antiguo').alias(campo[6])),
+        # pl.when(pl.col(campo[5]) <= limite_categoria_ultima_camp[0])
+        # .then(pl.lit('reciente').alias(campo[6]))
+        # .when(pl.col(campo[5]).is_between(limite_categoria_ultima_camp[0] + 1, limite_categoria_ultima_camp[1]))
+        # .then(pl.lit('moderado').alias(campo[6]))
+        # .otherwise(pl.lit('antiguo').alias(campo[6])),
 
         # Ingresos Per Cápita
         (pl.col(campo[1]) / pl.col(campo[7])).alias(campo[8]),
 
-        # Combinación de Perfil de Riesgo y Estado Civil
-        pl.concat_str([pl.col(campo[9]).cast(str), pl.col(campo[10])]).alias(campo[11]),
+        # # Combinación de Perfil de Riesgo y Estado Civil
+        # pl.concat_str([pl.col(campo[9]).cast(str), pl.col(campo[10])]).alias(campo[11]),
     ]
 
     # Aplicar todas las transformaciones en una sola operación
@@ -78,7 +78,7 @@ def new_features_pl(
 def add_target_variable_pl(
         df1: pl.DataFrame, #df
         df2: pl.DataFrame, #target
-        params: Dict[str, Any]
+        params: Dict[str, Any] #general
 ) -> pl.DataFrame:
     """
     Agrega la variable objetivo al DataFrame de Polars.
@@ -100,13 +100,10 @@ def add_target_variable_pl(
     logger.info("Añadiendo la variable objetivo al DataFrame...")
 
     # Parámetros
-    target_params = params['target']
+    target_params = params['general']
 
     # Realizar un left join para añadir la columna 'y' de df2 a df1 basado en 'id'
-    merged_df = df1.join(df2.select([target_params[0], target_params[1]]), on=target_params[0], how='left')
-
-    # Renombrar la columna si es necesario o realizar cualquier transformación adicional
-    df = merged_df.rename({target_params[1]: target_params[2]})
+    df = df1.join(df2.select([target_params[0], target_params[1]]), on=target_params[0], how='left')
 
     logger.info("Variable objetivo añadida!")
 
@@ -224,7 +221,10 @@ def add_random_variables_pd(df: pd.DataFrame) -> pd.DataFrame:
     pd.DataFrame
         DataFrame con las variables aleatorias agregadas.
     """
+    # Establecer la semilla fija en 42
+    np.random.seed(42)
 
+    # Agregar variables aleatorias
     df["var_aleatoria_uniforme"] = np.random.rand(len(df))
     df["var_aleatoria_entera"] = np.random.randint(1, 5, size=len(df))
 
@@ -253,13 +253,14 @@ def random_forest_selection_pl(
 
     # Parámetros
     rf_selection = params['rf_selection']
+    id_target = params['general']
 
     # Convertimos a pandas para usar train_test_split
     df_pandas = df.to_pandas()
 
     # Divide los datos en conjuntos de entrenamiento y prueba
-    X = df_pandas.drop(columns=[rf_selection['target'], rf_selection['id']])
-    y = df_pandas[rf_selection['target']]
+    X = df_pandas.drop(columns=[id_target[1], id_target[0]])
+    y = df_pandas[id_target[1]]
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=rf_selection['test_size'],
                                                         random_state=rf_selection['seed'])
 
@@ -344,14 +345,14 @@ def conditional_entropy_selection_pl(
     logger.info("Iniciando la selección de características con Entropía Condicional...")
 
     # Parámetros
-    target = params['ce_selection']['target']
-    id = params['ce_selection']['id']
+    id_target = params['general']
+    treshold = params['ce_selection']['theshold']
 
     # Eliminar id y target
-    df = df.drop(id)
+    df = df.drop(id_target[0])
 
     # Entropía variable objetivo
-    des = df.groupby(target).agg(pl.count().alias('count'))
+    des = df.group_by(id_target[1]).agg(pl.len().alias('count'))
     pr = des['count'] / df.height  # Obtener el número total de filas con df.height()
     Ho = entropy(pr.to_numpy())
 
@@ -359,20 +360,20 @@ def conditional_entropy_selection_pl(
     feature_names, feature_importance = [], []
 
     for columna in df.columns:
-        if columna == target:
+        if columna == id_target[1]:
             continue
         H = 0
         feature_names.append(columna)
 
         # Cálculo de entropía condicional en el bucle for
-        grouped = df.groupby(columna).agg(pl.col(target).count().alias("count"))
+        grouped = df.group_by(columna).agg(pl.col(id_target[1]).count().alias("count"))
         # Aseguramos que cada columna sea accesible por su nombre para evitar confusiones futuras
         grouped = grouped.with_columns(pl.col(columna).alias('value'))
         for row in grouped.rows():
             # Usamos índices de acuerdo a cómo están ordenadas las columnas en el DataFrame agrupado
             value, group_count = row[0], row[1]  # Asumiendo que 'columna' y 'count' son las primeras dos columnas
             df_i = df.filter(pl.col(columna) == value)
-            des = df_i.groupby(target).agg(pl.count().alias('count'))
+            des = df_i.group_by(id_target[1]).agg(pl.len().alias('count'))
             pr = des['count'] / group_count
             Hcond = entropy(pr.to_numpy())
             prob = group_count / df.height  # Usamos la propiedad height de Polars directamente
@@ -380,9 +381,14 @@ def conditional_entropy_selection_pl(
 
         feature_importance.append(Ho - H)
 
+    # Crear un DataFrame con la importancia de las características
     data_entropia = pl.DataFrame({'Feature': feature_names, 'Importance': feature_importance})
 
+    # Ordenar el DataFrame por importancia de manera descendente
     df_entropia = data_entropia.sort(by='Importance', descending=True)
+
+    # Filtrar características según el umbral de importancia
+    df_entropia = df_entropia.filter(pl.col('Importance') >= treshold)
 
     logger.info("Selección de características con Entropía Condicional completada!")
 
@@ -390,40 +396,48 @@ def conditional_entropy_selection_pl(
 
 
 def intersect_top_features_pl(
-    df1: pl.DataFrame,
-    df2: pl.DataFrame,
+    df1: pl.DataFrame, # Caracteristicas de random forest
+    df2: pl.DataFrame, # Caracteristicas de entropia
+    df3: pl.DataFrame, # Dataframe original
     params: Dict[str, Any],
-) -> set:
+) -> pl.DataFrame:
     """
     Obtiene las características más importantes de dos DataFrames basado en un diccionario de parámetros
 
     Parameters
     ----------
-    df1, df2: polars.DataFrame
-        DataFrames de polars de los que se obtendrán las características más importantes
+    df1, df2, df3: polars.DataFrame
+        DataFrames de polars de los que se obtendrán las características más importantes y dataframe orginal
     params: Dict[str, Any]
         Diccionario de parámetros featuring.
 
     Returns
     -------
-    set: Conjunto con las características más importantes.
+    pl.DataFrame: DataFrame con las características más importantes mas la variable objetivo.
     """
     logger.info("Intersección de las feature importence por los métodos aplicados...")
 
     # Parámetros
     n = params['features_importance']['top_features']
+    id_target = params['general']
 
     # Obtén las n características más importantes del dataframe
     top_features_df1 = set(df1.select('Feature').limit(n).to_pandas()['Feature'])
     top_features_df2 = set(df2.select('Feature').limit(n).to_pandas()['Feature'])
 
-    # Intersecta los conjuntos para obtener las características comunes a los dos dataframes
-    top_features = top_features_df1.intersection(top_features_df2)
+    # Une los conjuntos para obtener todas las características únicas de los dos dataframes
+    top_features = top_features_df1.union(top_features_df2)
 
     logger.info("Intersección de las feature importence completada!")
 
-    # Retorna el conjunto con las características más importantes
-    return top_features
+    # Añade la variable objetivo y filtra el dataframe original
+    top_features.add(id_target[1])
+    filtered_df = df3.select([*top_features])
 
+    # Asegúrate de excluir la columna 'id', si existe
+    if 'id' in filtered_df.columns:
+        filtered_df = filtered_df.drop(id_target[0])
 
-# validar que en el top_features no esta id ni taget. toma el df de one hot encoding y filtra solo las columnas de top_features + target.
+    logger.info("DataFrame con las características más importantes y la variable objetivo generado!")
+
+    return filtered_df

@@ -4,7 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="d13f5d99-f4cd-48d9-91a1-77c204cf7c62" name="Changes" comment="" />
+    <list default="true" id="d13f5d99-f4cd-48d9-91a1-77c204cf7c62" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/notebooks/01_agomezj-pruebas.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/01_agomezj-pruebas.ipynb" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -88,7 +90,7 @@
       <workItem from="1714174820636" duration="84439000" />
       <workItem from="1715203386411" duration="407000" />
       <workItem from="1715203835914" duration="2657000" />
-      <workItem from="1715295657932" duration="22157000" />
+      <workItem from="1715295657932" duration="22559000" />
     </task>
     <servers />
   </component>

@@ -5,19 +5,25 @@ on:
     branches:
       - main
       - processing
-      - pruebas
+      - featuring
 
 jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3  # Utiliza la última versión estable de checkout.
-      - name: Sync to GitLab
-        uses: keninkujovic/gitlab-sync@2.0.0
+        uses: actions/checkout@v3
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.5.3
         with:
-          gitlab_url: ${{ secrets.GITLAB_URL }}
-          username: ${{ secrets.USERNAME }}
-          gitlab_pat: ${{ secrets.GITLAB_PAT }}
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
+      - name: Add GitLab SSH key to known hosts
+        run: ssh-keyscan -H gitlab.com >> ~/.ssh/known_hosts
 
+      - name: Sync to GitLab
+        run: |
+          git remote add gitlab git@gitlab.com:agomezj4/proyecto_tc.git
+          git fetch --unshallow
+          git push gitlab ${{ github.ref_name }} --force

@@ -30,6 +30,10 @@ from functions.model_input import (min_max_scaler_pl,
                                    balance_target_variable_pl,
                                    train_test_split_pl)
 
+from functions.models import (a_pl,
+                              b_pl,
+                              c_pl)
+
 
 # Directorios para los archivos de parámetros y los datos
 parameters_directory = os.path.join(project_root, 'src', 'parameters')
@@ -39,6 +43,7 @@ target_directory = os.path.join(project_root, 'data', 'processed')
 data_features_directory = os.path.join(project_root, 'data', 'featured')
 data_train_directory = os.path.join(project_root, 'data', 'model_input', 'train')
 data_test_directory = os.path.join(project_root, 'data', 'model_input', 'test')
+data_model_directory = os.path.join(project_root, 'data', 'models')
 
 
 # Lista todos los archivos YAML en el directorio especificado
@@ -136,3 +141,21 @@ def run_model_input():
     test_data_path = os.path.join(data_test_directory, parameters['parameters_catalog']['test_data_path'])
     train_data.write_csv(train_data_path)
     test_data.write_csv(test_data_path)
+
+def run_models():
+    # Cargar datos de entrenamiento
+    train_data_path = os.path.join(data_train_directory, parameters['parameters_catalog']['train_data_path'])
+    train_data = pl.read_csv(train_data_path)
+
+    # Entrenar modelos
+    model_a = a_pl(train_data, parameters['parameters_models'])
+    model_b = b_pl(train_data, parameters['parameters_models'])
+    model_c = c_pl(train_data, parameters['parameters_models'])
+
+    # Guardar modelos
+    model_a_path = os.path.join(data_model_directory, parameters['parameters_catalog']['model_a_path'])
+    model_b_path = os.path.join(data_model_directory, parameters['parameters_catalog']['model_b_path'])
+    model_c_path = os.path.join(data_model_directory, parameters['parameters_catalog']['model_c_path'])
+    model_a.write_csv(model_a_path)
+    model_b.write_csv(model_b_path)
+    model_c.write_csv(model_c_path)

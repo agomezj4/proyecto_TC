@@ -7,6 +7,7 @@ on:
       - processing
       - featuring
       - model_input
+      - models
 
 jobs:
   sync:

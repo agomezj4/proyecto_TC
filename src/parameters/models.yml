@@ -1,0 +1,43 @@
+## Models parameters
+target: 'target'
+
+# Parámetros para balance_target_variable_pl
+basic_models: {
+    'Logistic Regression': {
+        'C': 0.1,
+        'solver': 'liblinear',
+        'max_iter': 1000,
+        'random_state': 42
+    },
+    'SVM': {
+        'C': 1.0,
+        'kernel': 'rbf',
+        'gamma': 'scale',
+        'random_state': 42
+    },
+    'KNN': {
+        'n_neighbors': 5,
+        'weights': 'uniform',
+        'algorithm': 'auto',
+        'leaf_size': 30
+    },
+    'Decision Tree': {
+        'n_estimators': 100,
+        'max_depth': 4,
+        'min_samples_split': 2,
+        'random_state': 42
+    }
+}
+
+scoring: {
+    'accuracy': 'accuracy',
+    'precision': 'precision',
+    'recall': 'recall',
+    'f1': 'f1'
+}
+
+cv_config: {
+    'n_splits': 10,
+    'n_repeats': 3,
+    'random_state': 42
+}

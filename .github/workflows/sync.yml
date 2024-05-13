@@ -6,6 +6,7 @@ on:
       - main
       - processing
       - featuring
+      - model_input
 
 jobs:
   sync:

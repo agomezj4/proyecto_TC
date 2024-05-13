@@ -1,4 +1,4 @@
-from typing import Dict, List, Any
+from typing import Dict, Any
 
 import polars as pl
 import pandas as pd
@@ -28,7 +28,7 @@ def new_features_pl(
     df : polars.DataFrame
         DataFrame de polars sobre el cual se añadirán nuevas características.
     params: Dict[str, Any]
-        Diccionario de parámetros processing.
+        Diccionario de parámetros featuring.
 
     Returns
     -------

@@ -26,6 +26,10 @@ from functions.featuring import (new_features_pl,
                                  conditional_entropy_selection_pl,
                                  intersect_top_features_pl)
 
+from functions.model_input import (min_max_scaler_pl,
+                                   balance_target_variable_pl,
+                                   train_test_split_pl)
+
 
 # Directorios para los archivos de parámetros y los datos
 parameters_directory = os.path.join(project_root, 'src', 'parameters')
@@ -33,6 +37,8 @@ data_raw_directory = os.path.join(project_root, 'data', 'raw')
 data_processed_directory = os.path.join(project_root, 'data', 'processed')
 target_directory = os.path.join(project_root, 'data', 'processed')
 data_features_directory = os.path.join(project_root, 'data', 'featured')
+data_train_directory = os.path.join(project_root, 'data', 'model_input', 'train')
+data_test_directory = os.path.join(project_root, 'data', 'model_input', 'test')
 
 
 # Lista todos los archivos YAML en el directorio especificado
@@ -110,3 +116,23 @@ def run_featuring():
     # Guardar datos de características
     features_data_path = os.path.join(data_features_directory, parameters['parameters_catalog']['features_data_path'])
     data_features.write_csv(features_data_path)
+
+def run_model_input():
+    # Cargar datos de características
+    features_data_path = os.path.join(data_features_directory, parameters['parameters_catalog']['features_data_path'])
+    data_features = pl.read_csv(features_data_path)
+
+    # Escalar características
+    data_scaled = min_max_scaler_pl(data_features)
+
+    # Balancear la variable target
+    data_balanced = balance_target_variable_pl(data_scaled, parameters['parameters_model_input'])
+
+    # Separar datos en entrenamiento y prueba
+    train_data, test_data = train_test_split_pl(data_balanced, parameters['parameters_model_input'])
+
+    # Guardar datos de entrenamiento y prueba
+    train_data_path = os.path.join(data_train_directory, parameters['parameters_catalog']['train_data_path'])
+    test_data_path = os.path.join(data_test_directory, parameters['parameters_catalog']['test_data_path'])
+    train_data.write_csv(train_data_path)
+    test_data.write_csv(test_data_path)

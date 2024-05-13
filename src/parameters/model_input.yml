@@ -1,0 +1,16 @@
+## Model Input parameters
+target:
+ - target
+
+# Parámetros para balance_target_variable_pl
+balance_target_variable: {
+    'random_state': 42,
+    'sampling_strategy': 0.65
+}
+
+# Parámetros para train_test_split_pl
+train_test_split: {
+    'test_size': 0.35,
+    'random_state': 42,
+    'shuffle': True
+}

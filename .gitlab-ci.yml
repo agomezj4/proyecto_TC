@@ -14,6 +14,7 @@
 stages:
   - preparation
   - feature_engineering
+  - model_input
 
 preparation:
   image: ruby:3.1
@@ -32,3 +33,12 @@ feature_engineering:
         - echo "INICIO ETAPA INGENIERÍA DE CARACTERÍSTICAS..."
         - proyecto_tc/bin/python3 __main__.py feature_engineering
         - echo "FIN ETAPA INGENIERÍA DE CARACTERÍSTICAS!"
+
+model_input:
+    image: ruby:3.1
+    stage: model_input
+    <<: *common_setup
+    script:
+        - echo "INICIO ETAPA MODEL INPUT..."
+        - proyecto_tc/bin/python3 __main__.py model_input
+        - echo "FIN ETAPA MODEL INPUT!"

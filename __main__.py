@@ -5,19 +5,22 @@ import os
 dir_path = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(dir_path, 'src'))
 from functions.orchestration import (run_processing,
-                                     run_featuring)
+                                     run_featuring,
+                                     run_model_input)
 
 def main():
     if len(sys.argv) > 1:
         stage = sys.argv[1]
         if stage == 'all':
-            print("Ejecutando todas las etapas del proyecto ...")
+            print("all pipelines")
             run_processing()
             run_featuring()
-        elif stage == 'preparation':
+        elif stage == 'preparation pipeline':
             run_processing()
-        elif stage == 'feature_engineering':
+        elif stage == 'feature_engineering pipeline':
             run_featuring()
+        elif stage == 'model_input pipeline':
+            run_model_input()
         else:
             print(f"Etapa '{stage}' no reconocida. Las etapas válidas son: preparation")
     else:

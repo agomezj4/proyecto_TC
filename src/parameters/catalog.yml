@@ -8,3 +8,7 @@ processed_data_path: data_processing.csv
 target_column_path: target.csv
 
 features_data_path: data_featuring.csv
+
+train_data_path: data_train.csv
+
+test_data_path: data_test.csv

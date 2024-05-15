@@ -17,7 +17,7 @@ stages:
 .preparation_setup: &preparation_setup
   - *common_setup
   - pip3 install polars
-  - pip3 install xls2csv
+  - pip3 install xlsx2csv
 
 # Instalación específica para el stage de feature_engineering
 .feature_engineering_setup: &feature_engineering_setup

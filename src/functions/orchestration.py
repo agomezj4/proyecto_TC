@@ -1,4 +1,5 @@
 import polars as pl
+import pandas as pd
 import os
 import sys
 import yaml
@@ -30,6 +31,8 @@ from functions.model_input import (min_max_scaler_pl,
                                    balance_target_variable_pl,
                                    train_test_split_pl)
 
+from functions.models import (train_models_pd)
+
 
 # Directorios para los archivos de parámetros y los datos
 parameters_directory = os.path.join(project_root, 'src', 'parameters')
@@ -39,6 +42,7 @@ target_directory = os.path.join(project_root, 'data', 'processed')
 data_features_directory = os.path.join(project_root, 'data', 'featured')
 data_train_directory = os.path.join(project_root, 'data', 'model_input', 'train')
 data_test_directory = os.path.join(project_root, 'data', 'model_input', 'test')
+data_model_directory = os.path.join(project_root, 'data', 'models')
 
 
 # Lista todos los archivos YAML en el directorio especificado
@@ -136,3 +140,21 @@ def run_model_input():
     test_data_path = os.path.join(data_test_directory, parameters['parameters_catalog']['test_data_path'])
     train_data.write_csv(train_data_path)
     test_data.write_csv(test_data_path)
+
+def run_models():
+    # Cargar datos de entrenamiento
+    train_data_path = os.path.join(data_train_directory, parameters['parameters_catalog']['train_data_path'])
+    train_data = pd.read_csv(train_data_path)
+
+    # Entrenar modelos
+    best_models = train_models_pd(train_data, parameters['parameters_models'])
+
+    # Guardar modelos
+    basic_model_path = os.path.join(data_model_directory, parameters['parameters_catalog']['basic_model_path'])
+    ensemble_model_path = os.path.join(data_model_directory, parameters['parameters_catalog']['ensemble_model_path'])
+    with open(basic_model_path, 'wb') as f:
+        f.write(best_models['basic']['pickle'])
+    with open(ensemble_model_path, 'wb') as f:
+        f.write(best_models['ensemble']['pickle'])
+
+

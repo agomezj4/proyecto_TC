@@ -11,11 +11,15 @@
     - pip3 install scikit-learn
     - pip3 install pyarrow
     - pip3 install imbalanced-learn
+    - pip3 install xgboost
+    - pip3 install scipy
+    - pip3 install scikit-posthocs
 
 stages:
   - preparation
   - feature_engineering
   - model_input
+  - models
 
 preparation:
   image: ruby:3.1
@@ -23,7 +27,7 @@ preparation:
   <<: *common_setup
   script:
     - echo "INICIO ETAPA PROCESAMIENTO DE DATOS..."
-    - proyecto_tc/bin/python3 __main__.py preparation
+    - proyecto_tc/bin/python3 __main__.py 'preparation pipeline'
     - echo "FIN ETAPA PROCESAMIENTO DE DATOS!"
 
 feature_engineering:
@@ -32,7 +36,7 @@ feature_engineering:
     <<: *common_setup
     script:
         - echo "INICIO ETAPA INGENIERÍA DE CARACTERÍSTICAS..."
-        - proyecto_tc/bin/python3 __main__.py feature_engineering
+        - proyecto_tc/bin/python3 __main__.py 'feature_engineering pipeline'
         - echo "FIN ETAPA INGENIERÍA DE CARACTERÍSTICAS!"
 
 model_input:
@@ -41,5 +45,14 @@ model_input:
     <<: *common_setup
     script:
         - echo "INICIO ETAPA MODEL INPUT..."
-        - proyecto_tc/bin/python3 __main__.py model_input
+        - proyecto_tc/bin/python3 __main__.py 'model_input pipeline'
         - echo "FIN ETAPA MODEL INPUT!"
+
+models:
+    image: ruby:3.1
+    stage: models
+    <<: *common_setup
+    script:
+        - echo "INICIO ETAPA EXPERIMENTACIÓN MODELOS..."
+        - proyecto_tc/bin/python3 __main__.py 'models pipeline'
+        - echo "FIN ETAPA EXPERIMENTACIÓN MODELOS!"

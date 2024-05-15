@@ -1,4 +1,5 @@
 import polars as pl
+import pandas as pd
 import os
 import sys
 import yaml
@@ -30,9 +31,7 @@ from functions.model_input import (min_max_scaler_pl,
                                    balance_target_variable_pl,
                                    train_test_split_pl)
 
-from functions.models import (a_pl,
-                              b_pl,
-                              c_pl)
+from functions.models import (train_models_pd)
 
 
 # Directorios para los archivos de parámetros y los datos
@@ -145,17 +144,17 @@ def run_model_input():
 def run_models():
     # Cargar datos de entrenamiento
     train_data_path = os.path.join(data_train_directory, parameters['parameters_catalog']['train_data_path'])
-    train_data = pl.read_csv(train_data_path)
+    train_data = pd.read_csv(train_data_path)
 
     # Entrenar modelos
-    model_a = a_pl(train_data, parameters['parameters_models'])
-    model_b = b_pl(train_data, parameters['parameters_models'])
-    model_c = c_pl(train_data, parameters['parameters_models'])
+    best_models = train_models_pd(train_data, parameters['parameters_models'])
 
     # Guardar modelos
-    model_a_path = os.path.join(data_model_directory, parameters['parameters_catalog']['model_a_path'])
-    model_b_path = os.path.join(data_model_directory, parameters['parameters_catalog']['model_b_path'])
-    model_c_path = os.path.join(data_model_directory, parameters['parameters_catalog']['model_c_path'])
-    model_a.write_csv(model_a_path)
-    model_b.write_csv(model_b_path)
-    model_c.write_csv(model_c_path)
+    basic_model_path = os.path.join(data_model_directory, parameters['parameters_catalog']['basic_model_path'])
+    ensemble_model_path = os.path.join(data_model_directory, parameters['parameters_catalog']['ensemble_model_path'])
+    with open(basic_model_path, 'wb') as f:
+        f.write(best_models['basic']['pickle'])
+    with open(ensemble_model_path, 'wb') as f:
+        f.write(best_models['ensemble']['pickle'])
+
+

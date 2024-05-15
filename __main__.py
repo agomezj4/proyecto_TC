@@ -35,5 +35,6 @@ def main():
     else:
         print("No se especificó una etapa. Uso: python __main__.py [etapa]")
 
+
 if __name__ == "__main__":
     main()

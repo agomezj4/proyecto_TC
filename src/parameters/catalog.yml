@@ -12,3 +12,7 @@ features_data_path: data_featuring.csv
 train_data_path: data_train.csv
 
 test_data_path: data_test.csv
+
+basic_model_path: basic_model.pkl
+
+ensemble_model_path: ensemble_model.pkl

@@ -1,49 +1,82 @@
-.common_setup: &common_setup
-  before_script:
-    - apt-get update -y && apt-get install -y python3 python3-pip python3-venv
-    - python3 -m venv proyecto_tc
-    - source proyecto_tc/bin/activate
-    - pip3 install polars
-    - pip3 install PyYAML
-    - pip3 install xlsx2csv
-    - pip3 install pandas
-    - pip3 install numpy
-    - pip3 install scikit-learn
-    - pip3 install pyarrow
-    - pip3 install imbalanced-learn
-
 stages:
   - preparation
   - feature_engineering
   - model_input
   - models
 
+# Configuración común para todos los stages
+.common_setup: &common_setup
+  before_script:
+    - apt-get update -y && apt-get install -y python3 python3-pip python3-venv
+    - python3 -m venv proyecto_tc
+    - source proyecto_tc/bin/activate
+    - pip3 install --upgrade pip
+    - pip3 install PyYAML
+    - pip3 install pyarrow
+
+# Instalación específica para el stage de preparation
+.preparation_setup: &preparation_setup
+  before_script:
+    - *common_setup
+    - pip3 install polars
+    - pip3 install xls2csv
+
+
+# Instalación específica para el stage de feature_engineering
+.feature_engineering_setup: &feature_engineering_setup
+  before_script:
+    - *common_setup
+    - pip3 install polars
+    - pip3 install pandas
+    - pip3 install numpy
+    - pip3 install scikit-learn
+
+
+# Instalación específica para el stage de model_input
+.model_input_setup: &model_input_setup
+  before_script:
+    - *common_setup
+    - pip3 install polars
+    - pip3 install scikit-learn
+    - pip3 install imbalanced-learn
+
+# Instalación específica para el stage de models
+.models_setup: &models_setup
+  before_script:
+    - *common_setup
+    - pip3 install pandas
+    - pip3 install numpy
+    - pip3 install scikit-learn
+    - pip3 install xgboost
+    - pip3 install scipy
+    - pip3 install scikit-posthocs
+
 preparation:
   image: ruby:3.1
   stage: preparation
-  <<: *common_setup
+  <<: *preparation_setup
   script:
     - echo "INICIO ETAPA PROCESAMIENTO DE DATOS..."
-    - proyecto_tc/bin/python3 __main__.py preparation
+    - proyecto_tc/bin/python3 __main__.py 'preparation pipeline'
     - echo "FIN ETAPA PROCESAMIENTO DE DATOS!"
 
 feature_engineering:
-    image: ruby:3.1
-    stage: feature_engineering
-    <<: *common_setup
-    script:
-        - echo "INICIO ETAPA INGENIERÍA DE CARACTERÍSTICAS..."
-        - proyecto_tc/bin/python3 __main__.py feature_engineering
-        - echo "FIN ETAPA INGENIERÍA DE CARACTERÍSTICAS!"
+  image: ruby:3.1
+  stage: feature_engineering
+  <<: *feature_engineering_setup
+  script:
+    - echo "INICIO ETAPA INGENIERÍA DE CARACTERÍSTICAS..."
+    - proyecto_tc/bin/python3 __main__.py 'feature_engineering pipeline'
+    - echo "FIN ETAPA INGENIERÍA DE CARACTERÍSTICAS!"
 
 model_input:
-    image: ruby:3.1
-    stage: model_input
-    <<: *common_setup
-    script:
-        - echo "INICIO ETAPA MODEL INPUT..."
-        - proyecto_tc/bin/python3 __main__.py model_input
-        - echo "FIN ETAPA MODEL INPUT!"
+  image: ruby:3.1
+  stage: model_input
+  <<: *model_input_setup
+  script:
+    - echo "INICIO ETAPA MODEL INPUT..."
+    - proyecto_tc/bin/python3 __main__.py 'model_input pipeline'
+    - echo "FIN ETAPA MODEL INPUT!"
 
 models:
     image: ruby:3.1
@@ -51,5 +84,5 @@ models:
     <<: *common_setup
     script:
         - echo "INICIO ETAPA EXPERIMENTACIÓN MODELOS..."
-        - proyecto_tc/bin/python3 __main__.py models
+        - proyecto_tc/bin/python3 __main__.py 'models pipeline'
         - echo "FIN ETAPA EXPERIMENTACIÓN MODELOS!"

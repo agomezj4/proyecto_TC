@@ -12,32 +12,29 @@ stages:
   - pip3 install --upgrade pip
   - pip3 install PyYAML
   - pip3 install pyarrow
+  - pip3 install pandas
+  - pip3 install polars
 
 # Instalación específica para el stage de preparation
 .preparation_setup: &preparation_setup
   - *common_setup
-  - pip3 install polars
   - pip3 install xlsx2csv
 
 # Instalación específica para el stage de feature_engineering
 .feature_engineering_setup: &feature_engineering_setup
   - *common_setup
-  - pip3 install polars
-  - pip3 install pandas
   - pip3 install numpy
   - pip3 install scikit-learn
 
 # Instalación específica para el stage de model_input
 .model_input_setup: &model_input_setup
   - *common_setup
-  - pip3 install polars
   - pip3 install scikit-learn
   - pip3 install imbalanced-learn
 
 # Instalación específica para el stage de models
 .models_setup: &models_setup
   - *common_setup
-  - pip3 install pandas
   - pip3 install numpy
   - pip3 install scikit-learn
   - pip3 install xgboost

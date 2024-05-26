@@ -2,7 +2,7 @@ stages:
   - preparation_pipeline
   - feature_engineering_pipeline
   - model_input_pipeline
-  - models_pipeline
+  - training_pipeline
   - model_selection_pipeline
 
 # Configuración común para todos los stages
@@ -82,7 +82,7 @@ model_input:
     - proyecto_tc/bin/python3 __main__.py 'model_input_pipeline'
     - echo "FIN ETAPA MODEL INPUT!"
 
-models:
+training:
   image: ruby:3.1
   stage: training_pipeline
   before_script:

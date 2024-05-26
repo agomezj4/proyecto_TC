@@ -10,7 +10,7 @@ from sklearn.svm import SVC
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
 
-from sklearn.ensemble import RandomForestClassifier, VotingClassifier, AdaBoostClassifier
+from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 from xgboost import XGBClassifier
 
 from sklearn.pipeline import Pipeline
@@ -35,8 +35,8 @@ def analyze_model_performance(
     utilizando la prueba de Friedman y, si es necesario, la prueba post-hoc de Nemenyi.
 
     Parámetros:
-        results (Dict[str, Any]): Diccionario con los resultados de cada modelo.
-        metric (str): Nombre de la métrica a analizar.
+        results (Dict[str, Any]): Diccionario con los resultados de cada modelo
+        metric (str): Nombre de la métrica a analizar
 
     Retorna:
         None
@@ -91,9 +91,9 @@ def order_models_by_performance(
     Parameters
     ----------
     results : Dict[str, Dict[str, np.ndarray]]
-        Diccionario con los resultados de cada modelo.
+        Diccionario con los resultados de cada modelo
     metric : str
-        Nombre de la métrica para ordenar los modelos.
+        Nombre de la métrica para ordenar los modelos
 
     Returns
     -------
@@ -125,9 +125,9 @@ def train_models_pd(
     Parameters
     ----------
     df : pd.DataFrame
-        DataFrame de pandas con las características y la variable objetivo.
+        DataFrame de pandas con las características y la variable objetivo
     params: Dict[str, Any]
-        Diccionario de parámetros models.
+        Diccionario de parámetros models
 
     Returns
     -------
@@ -205,6 +205,7 @@ def train_models_pd(
     best_basic_model = ordered_basic_results['ordered_models'][0]
     best_ensemble_model = ordered_ensemble_results['ordered_models'][0]
 
+    # Guardar los mejores modelos como pickle
     best_models['basic'] = {
         'model_name': best_basic_model,
         'pickle': pickle.dumps(trained_basic_models[best_basic_model])
@@ -218,7 +219,3 @@ def train_models_pd(
     logger.info("Entrenamiento y evaluación de modelos completado!\n")
 
     return best_models
-
-
-
-

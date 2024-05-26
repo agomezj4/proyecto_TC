@@ -1,6 +1,6 @@
-from typing import Dict, Any
+from typing import Dict, Any, Tuple
 
-import polars as pl
+import pandas as pd
 from imblearn.over_sampling import SMOTE
 import logging
 
@@ -11,27 +11,27 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 # 1. Escalado de variables numéricos
-def min_max_scaler_pl(df: pl.DataFrame) -> pl.DataFrame:
+def min_max_scaler_pd(df: pd.DataFrame) -> pd.DataFrame:
     """
     Estandariza las columnas numéricas (excluyendo binarias) de un DataFrame utilizando el método Min-Max Scaler.
 
     Parameters
     ----------
-    df : pl.DataFrame
-        DataFrame de Polars que se estandarizará.
+    df : pd.DataFrame
+        DataFrame de Pandas que se estandarizará
 
     Returns
     -------
-    pl.DataFrame
+    pd.DataFrame
         DataFrame estandarizado.
     """
     logger.info("Iniciando la estandarización con Min-Max Scaler...")
 
     # Identificar las columnas numéricas
-    numeric_cols = [name for name, dtype in df.schema.items() if dtype in (pl.Float32, pl.Float64, pl.Int32, pl.Int64)]
+    numeric_cols = df.select_dtypes(include=['float32', 'float64', 'int32', 'int64']).columns
 
     # Filtrar solo las columnas numéricas no binarias (excluyendo aquellas que solo toman valores 0 y 1)
-    numeric_cols = [col for col in numeric_cols if not ((df[col].unique().len() == 2) & (df[col].is_in([0, 1]).sum() == df[col].len()))]
+    numeric_cols = [col for col in numeric_cols if not ((df[col].nunique() == 2) & (df[col].isin([0, 1]).sum() == len(df)))]
 
     # Aplicar Min-Max Scaler solo a las columnas numéricas no binarias
     for col in numeric_cols:
@@ -39,124 +39,122 @@ def min_max_scaler_pl(df: pl.DataFrame) -> pl.DataFrame:
         max_val = df[col].max()
         range_val = max_val - min_val
         if range_val != 0:  # Evita la división por cero en caso de que todas las entradas en una columna sean iguales
-            df = df.with_columns(
-                ((pl.col(col) - min_val) / range_val).alias(col)
-            )
+            df[col] = (df[col] - min_val) / range_val
 
     logger.info("Estandarización con Min-Max Scaler completada!")
 
-    # Retorna el DataFrame estandarizado
     return df
 
 
 # 2. Balance la target variable
-def balance_target_variable_pl(
-        df: pl.DataFrame,
-        params: Dict[str, Any]
-) -> pl.DataFrame:
+def balance_target_variable_pd(df: pd.DataFrame, params: Dict[str, Any]) -> pd.DataFrame:
     """
     Balancea la variable objetivo utilizando el método Synthetic Minority Over-sampling Technique (SMOTE).
 
     Parameters
     ----------
-    df : pl.DataFrame
-        DataFrame de Polars que se balanceará la target.
+    df : pd.DataFrame
+        DataFrame de Pandas que se balanceará la target
     params: Dict[str, Any]
-        Diccionario de parámetros model input.
-
+        Diccionario de parámetros model input
 
     Returns
     -------
-    pl.DataFrame
+    pd.DataFrame
         DataFrame con target balanceada balanceado.
     """
     logger.info("Iniciando el balanceo de la variable objetivo con SMOTE...")
 
     # Parámetros
-    target = params['target']
+    target = params['target'][0]
     random_state = params['balance_target_variable']['random_state']
     sampling_strategy = params['balance_target_variable']['sampling_strategy']
 
     # Separar las características y la variable objetivo
-    X = df.drop(target[0])
+    X = df.drop(columns=[target])
     y = df[target]
 
     # Contar las clases antes del balanceo
-    counts_before = y.groupby(target).count()
+    counts_before = y.value_counts()
     logger.info(f"Conteo de clases antes del balanceo: {counts_before}")
 
     # Inicializar el objeto SMOTE
     smote = SMOTE(random_state=random_state, sampling_strategy=sampling_strategy)
 
     # Aplicar SMOTE
-    X_resampled, y_resampled = smote.fit_resample(X.to_numpy(), y.to_numpy().flatten())
+    X_resampled, y_resampled = smote.fit_resample(X, y)
 
     # Crear un nuevo DataFrame con las características y la variable objetivo balanceada
-    df_resampled = pl.DataFrame(X_resampled, schema=X.schema)
-    df_resampled = df_resampled.with_columns(pl.Series(target[0], y_resampled))
+    df_resampled = pd.DataFrame(X_resampled, columns=X.columns)
+    df_resampled[target] = y_resampled
 
     # Contar las clases después del balanceo
-    counts_after = pl.DataFrame({target[0]: y_resampled}).groupby(target).agg(pl.count())
+    counts_after = y_resampled.value_counts()
     logger.info(f"Conteo de clases después del balanceo: {counts_after}")
 
     logger.info("Balanceo de la variable objetivo con SMOTE completado!")
 
-    # Retorna el DataFrame balanceado
     return df_resampled
 
 
-# 3. Separación de datos en entrenamiento y prueba
-def train_test_split_pl(
-        df: pl.DataFrame,
+# 3. Separación de datos en entrenamiento, validcaion y prueba
+def train_test_split_pd(
+        df: pd.DataFrame,
         params: Dict[str, Any]
-) -> (pl.DataFrame, pl.DataFrame):
+) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
-    Divide un DataFrame en dos subconjuntos: entrenamiento y prueba.
+    Divide un DataFrame en tres subconjuntos: entrenamiento, validación y prueba.
 
     Parameters
     ----------
-    df : pl.DataFrame
-        DataFrame de Polars que se dividirá.
+    df : pd.DataFrame
+        DataFrame de Pandas que se dividirá
     params: Dict[str, Any]
-        Diccionario de parámetros model input.
+        Diccionario de parámetros model input
 
     Returns
     -------
-    (pl.DataFrame, pl.DataFrame)
-        Tupla con los DataFrames de entrenamiento y prueba.
+    Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]
+        Tupla con los DataFrames de entrenamiento, validación y prueba.
     """
-    logger.info("Iniciando la división de datos en entrenamiento y prueba...")
+    logger.info("Iniciando la división de datos en entrenamiento, validación y prueba...")
 
     # Parámetros
     target = params['target'][0]
     test_size = params['train_test_split']['test_size']
+    validation_size = params['train_test_split']['validation_size']
     random_state = params['train_test_split']['random_state']
     shuffle = params['train_test_split']['shuffle']
 
     # Separar las características y la variable objetivo
-    X = df.drop(target)
+    X = df.drop(columns=[target])
     y = df[target]
 
     # Dividir los datos en entrenamiento y prueba
-    X_train, X_test, y_train, y_test = train_test_split(X.to_numpy(),
-                                                        y.to_numpy().flatten(),
-                                                        test_size=test_size,
-                                                        random_state=random_state,
-                                                        stratify=y,
-                                                        shuffle=shuffle)
+    X_train_val, X_test, y_train_val, y_test = train_test_split(X,
+                                                                y,
+                                                                test_size=test_size,
+                                                                random_state=random_state,
+                                                                stratify=y,
+                                                                shuffle=shuffle)
 
-    # Crear DataFrames con los datos de entrenamiento y prueba
-    train_data = pl.DataFrame(X_train, schema=X.schema)
-    test_data = pl.DataFrame(X_test, schema=X.schema)
+    # Calcular el tamaño del conjunto de validación respecto al conjunto de entrenamiento + validación
+    val_size = validation_size / (1 - test_size)
 
-    # Convertir numpy arrays a Series de Polars y añadir como nuevas columnas
-    y_train_series = pl.Series(name=target, values=y_train)
-    y_test_series = pl.Series(name=target, values=y_test)
+    # Dividir los datos de entrenamiento en entrenamiento y validación
+    X_train, X_val, y_train, y_val = train_test_split(X_train_val,
+                                                      y_train_val,
+                                                      test_size=val_size,
+                                                      random_state=random_state,
+                                                      stratify=y_train_val,
+                                                      shuffle=shuffle)
 
-    train_data = train_data.with_columns(y_train_series)
-    test_data = test_data.with_columns(y_test_series)
+    # Crear DataFrames con los datos de entrenamiento, validación y prueba
+    train_data = pd.concat([X_train, y_train], axis=1)
+    val_data = pd.concat([X_val, y_val], axis=1)
+    test_data = pd.concat([X_test, y_test], axis=1)
 
-    logger.info("División de datos en entrenamiento y prueba completada!")
+    logger.info("División de datos en entrenamiento, validación y prueba completada!")
 
-    # Retorna los DataFrames de entrenamiento y prueba
-    return train_data, test_data
+    return train_data, val_data, test_data
+

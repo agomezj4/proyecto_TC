@@ -1,0 +1,35 @@
+## Model Selection parameters
+
+# Parámetros generales
+target_col: "target"
+random_state: 42
+target_metric: "recall"
+
+# Parámetros para optimize_train_knn
+knn_classifier:
+  exploration_space:
+    n_neighbors: [1, 20]
+    p: [1, 2]
+    weights: ["uniform", "distance"]
+    metric: ["minkowski"]
+  number_of_iterations: 50
+  init_points: 10
+
+# Parámetros para optimize_train_xgboost
+xgboost_classifier:
+  exploration_space:
+    max_depth: [3, 10]
+    n_estimators: [50, 300]
+    learning_rate: [0.01, 0.3]
+    min_child_weight: [1, 10]
+    subsample: [0.5, 1.0]
+    colsample_bytree: [0.5, 1.0]
+    gamma: [0, 5]
+  number_of_iterations: 50
+  init_points: 10
+
+# Parámetros para cross validation
+cv_config:
+  n_splits: 10
+  n_repeats: 3
+  random_state: 42

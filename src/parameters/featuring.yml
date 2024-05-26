@@ -43,7 +43,7 @@ rf_selection: {
 
 #Parámetros para conditional_entropy_selection_pl
 ce_selection: {
-    'theshold': 0.4
+    'threshold': 0.4
 }
 
 #Parámetros para intersect_top_features

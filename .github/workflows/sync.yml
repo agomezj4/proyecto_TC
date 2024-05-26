@@ -8,6 +8,8 @@ on:
       - featuring
       - model_input
       - models
+      - model_selection
+      - prediction
 
 jobs:
   sync:

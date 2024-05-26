@@ -43,19 +43,19 @@ for yaml_file in yaml_files:
         parameters[key_name] = data
 
 
-# Importar funciones de los pipelines
-
-# Nodos pipeline de procesamiento
-from functions.processing import (validate_tags_pd,
-                                  validate_dtypes_pd,
-                                  change_names_pd,
-                                  change_dtype_pd,
-                                  delete_accents_pd,
-                                  standardize_binary_values_pd,
-                                  impute_missing_values_pd)
+# Pipeline de orquestación
 
 # Pipeline de procesamiento
 def run_processing():
+
+    # Nodos pipeline de procesamiento
+    from functions.processing import (validate_tags_pd,
+                                      validate_dtypes_pd,
+                                      change_names_pd,
+                                      change_dtype_pd,
+                                      delete_accents_pd,
+                                      standardize_binary_values_pd,
+                                      impute_missing_values_pd)
 
     # Cargar datos
     tag_dict_path = os.path.join(data_raw_directory, parameters['parameters_catalog']['tag_dict_path'])
@@ -90,16 +90,17 @@ def run_processing():
     data_processing.to_parquet(processed_data_path)
 
 
-# Nodos pipeline de ingeniería de características
-from functions.featuring import (new_features_pd,
-                                 add_target_variable_pd,
-                                 one_hot_encoding_pd,
-                                 random_forest_selection_pd,
-                                 conditional_entropy_selection_pd,
-                                 intersect_top_features_pd)
-
 # Pipeline de ingeniería de características
 def run_featuring():
+
+    # Nodos pipeline de ingeniería de características
+    from functions.featuring import (new_features_pd,
+                                     add_target_variable_pd,
+                                     one_hot_encoding_pd,
+                                     random_forest_selection_pd,
+                                     conditional_entropy_selection_pd,
+                                     intersect_top_features_pd)
+
     # Cargar datos procesados
     processed_data_path = os.path.join(data_processed_directory, parameters['parameters_catalog']['processed_data_path'])
     data_processed = pd.read_parquet(processed_data_path)
@@ -129,13 +130,14 @@ def run_featuring():
     data_features.to_parquet(features_data_path)
 
 
-# Nodos pipeline model input
-from functions.model_input import (min_max_scaler_pd,
-                                   balance_target_variable_pd,
-                                   train_test_split_pd)
-
 # Pipeline model input
 def run_model_input():
+
+    # Nodos pipeline model input
+    from functions.model_input import (min_max_scaler_pd,
+                                       balance_target_variable_pd,
+                                       train_test_split_pd)
+
     # Cargar datos de características
     features_data_path = os.path.join(data_features_directory, parameters['parameters_catalog']['features_data_path'])
     data_features = pd.read_parquet(features_data_path)
@@ -159,11 +161,12 @@ def run_model_input():
     validation_data.to_parquet(validation_data_path)
 
 
-# Nodos pipeline de entrenamiento de modelos
-from functions.models import (train_models_pd)
-
 # Pipeline de entrenamiento de modelos
 def run_models():
+
+    # Nodos pipeline de entrenamiento de modelos
+    from functions.models import (train_models_pd)
+
     # Cargar datos de entrenamiento
     train_data_path = os.path.join(data_train_directory, parameters['parameters_catalog']['train_data_path'])
     train_data = pd.read_parquet(train_data_path)
@@ -181,13 +184,14 @@ def run_models():
         f.write(best_models['ensemble']['pickle'])
 
 
-# Nodos pipeline de selección de modelos
-from functions.model_selection import (optimize_train_knn,
-                                       optimize_train_xgboost,
-                                       ab_test_models)
-
 # Pipeline de selección de modelos
 def run_model_selection():
+
+    # Nodos pipeline de selección de modelos
+    from functions.model_selection import (optimize_train_knn,
+                                           optimize_train_xgboost,
+                                           ab_test_models)
+
     # Cargar datos de validación
     val_data_path = os.path.join(data_validation_directory, parameters['parameters_catalog']['validation_data_path'])
     val_data = pd.read_parquet(val_data_path)

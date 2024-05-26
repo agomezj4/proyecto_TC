@@ -49,6 +49,9 @@ stages:
   - pip3 install scikit-learn
   - pip3 install bayesian-optimization
 
+
+## Ejecución de los stages
+
 preparation_pipeline:
   image: ruby:3.1
   stage: preparation

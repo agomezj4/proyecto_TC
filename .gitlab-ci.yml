@@ -1,9 +1,9 @@
 stages:
-  - preparation
-  - feature_engineering
-  - model_input
-  - models
-  - model_selection
+  - preparation_pipeline
+  - feature_engineering_pipeline
+  - model_input_pipeline
+  - models_pipeline
+  - model_selection_pipeline
 
 # Configuración común para todos los stages
 .common_setup: &common_setup

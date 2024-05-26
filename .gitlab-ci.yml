@@ -1,9 +1,9 @@
 stages:
-  - preparation_pipeline
-  - feature_engineering_pipeline
-  - model_input_pipeline
-  - training_pipeline
-  - model_selection_pipeline
+  - preparation
+  - feature_engineering
+  - model_input
+  - training
+  - model_selection
 
 # Configuración común para todos los stages
 .common_setup: &common_setup
@@ -20,15 +20,12 @@ stages:
   - *common_setup
   - pip3 install xlsx2csv
   - pip3 install openpyxl
-  - pip3 install re
-  - pip3 install unicodedata
 
 # Instalación específica para el stage de feature_engineering
 .feature_engineering_setup: &feature_engineering_setup
   - *common_setup
   - pip3 install numpy
   - pip3 install scikit-learn
-  - pip3 install re
 
 # Instalación específica para el stage de model_input
 .model_input_setup: &model_input_setup
@@ -52,9 +49,9 @@ stages:
   - pip3 install scikit-learn
   - pip3 install bayesian-optimization
 
-preparation:
+preparation_pipeline:
   image: ruby:3.1
-  stage: preparation_pipeline
+  stage: preparation
   before_script:
     *preparation_setup
   script:
@@ -62,9 +59,9 @@ preparation:
     - proyecto_tc/bin/python3 __main__.py 'preparation_pipeline'
     - echo "FIN ETAPA PROCESAMIENTO DE DATOS!"
 
-feature_engineering:
+feature_engineering_pipeline:
   image: ruby:3.1
-  stage: feature_engineering_pipeline
+  stage: feature_engineering
   before_script:
     *feature_engineering_setup
   script:
@@ -72,9 +69,9 @@ feature_engineering:
     - proyecto_tc/bin/python3 __main__.py 'feature_engineering_pipeline'
     - echo "FIN ETAPA INGENIERÍA DE CARACTERÍSTICAS!"
 
-model_input:
+model_input_pipeline:
   image: ruby:3.1
-  stage: model_input_pipeline
+  stage: model_input
   before_script:
     *model_input_setup
   script:
@@ -84,7 +81,7 @@ model_input:
 
 training:
   image: ruby:3.1
-  stage: training_pipeline
+  stage: training
   before_script:
     *models_setup
   script:
@@ -92,9 +89,9 @@ training:
     - proyecto_tc/bin/python3 __main__.py 'models_pipeline'
     - echo "FIN ETAPA EXPERIMENTACIÓN MODELOS!"
 
-model_selection:
+model_selection_pipeline:
     image: ruby:3.1
-    stage: model_selection_pipeline
+    stage: model_selection
     before_script:
         *model_selection_setup
     script:

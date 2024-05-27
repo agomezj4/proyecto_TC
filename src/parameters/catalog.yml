@@ -3,16 +3,24 @@ tag_dict_path: tag_dict_tc.xlsx
 
 raw_data_path: data_raw.csv
 
-processed_data_path: data_processing.csv
+processed_data_path: data_processing.parquet
 
 target_column_path: target.csv
 
-features_data_path: data_featuring.csv
+features_data_path: data_featuring.parquet
 
-train_data_path: data_train.csv
+train_data_path: data_train.parquet
 
-test_data_path: data_test.csv
+validation_data_path: data_validation.parquet
+
+test_data_path: data_test.parquet
 
 basic_model_path: basic_model.pkl
 
 ensemble_model_path: ensemble_model.pkl
+
+best_basic_model_path: best_basic_model.pkl
+
+best_ensemble_model_path: best_ensemble_model.pkl
+
+best_model_ab_test_path: best_model.pkl # En caso de que A/B testing seleccione el best model

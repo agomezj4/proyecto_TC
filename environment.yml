@@ -5,6 +5,7 @@ channels:
 dependencies:
   - python=3.11.0
   - pandas=2.2.0
+  - openpyxl=3.1.0
   - numpy=1.26.0
   - polars=0.20.25
   - pyyaml=6.0.0
@@ -15,3 +16,4 @@ dependencies:
   - imbalanced-learn=0.12.0
   - scikit-posthocs=0.9.0
   - xgboost=2.0.3
+  - bayesian-optimization=1.4.3

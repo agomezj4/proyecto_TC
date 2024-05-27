@@ -7,28 +7,33 @@ sys.path.append(os.path.join(dir_path, 'src'))
 from functions.orchestration import (run_processing,
                                      run_featuring,
                                      run_model_input,
-                                     run_models)
+                                     run_models,
+                                     run_model_selection,)
 
 def main():
     if len(sys.argv) > 1:
         stage = sys.argv[1]
-        if stage == 'all pipelines':
+        if stage == 'all_pipelines':
             run_processing()
             run_featuring()
             run_model_input()
             run_models()
+            run_model_selection()
 
-        elif stage == 'preparation pipeline':
+        elif stage == 'preparation_pipeline':
             run_processing()
 
-        elif stage == 'feature_engineering pipeline':
+        elif stage == 'feature_engineering_pipeline':
             run_featuring()
 
-        elif stage == 'model_input pipeline':
+        elif stage == 'model_input_pipeline':
             run_model_input()
 
-        elif stage == 'models pipeline':
+        elif stage == 'models_pipeline':
             run_models()
+
+        elif stage == 'model_selection_pipeline':
+            run_model_selection()
 
         else:
             print(f"Etapa '{stage}' no reconocida. Las etapas válidas son: preparation")

@@ -1,6 +1,6 @@
 from typing import Dict, Any
 
-import polars as pl
+
 import pandas as pd
 import logging
 import re
@@ -15,24 +15,21 @@ logger.setLevel(logging.INFO)
 
 
 # 1. Nuevas Variables
-def new_features_pl(
-        df: pl.DataFrame,
-        params: Dict[str, Any]
-) -> pl.DataFrame:
+def new_features_pd(df: pd.DataFrame, params: Dict[str, Any]) -> pd.DataFrame:
     """
-    Genera nuevas características en un DataFrame de Polars basándose en los parámetros especificados,
+    Genera nuevas características en un DataFrame de Pandas basándose en los parámetros especificados,
     como ratios financieros y categorías derivadas de datos existentes.
 
     Parameters
     ----------
-    df : polars.DataFrame
-        DataFrame de polars sobre el cual se añadirán nuevas características.
+    df : pd.DataFrame
+        DataFrame de Pandas sobre el cual se añadirán nuevas características
     params: Dict[str, Any]
-        Diccionario de parámetros featuring.
+        Diccionario de parámetros featuring
 
     Returns
     -------
-    pl.DataFrame
+    pd.DataFrame
         DataFrame con las nuevas características añadidas.
     """
     logger.info("Iniciando la generación de nuevas características...")
@@ -42,32 +39,24 @@ def new_features_pl(
     limite_categoria_ultima_camp = params['limite_ultima_camp']
     categoria_ultima_camp = params['categorias_ultima_camp']
 
-    # Nuevas transformaciones según los parámetros
-    new_columns = [
-        # Ratio de Ingresos a Deuda
-        pl.when(pl.col(campo[0]) == 0).then(float('inf'))  # Evitar división por cero
-        .otherwise(pl.col(campo[1]) / pl.col(campo[0])).alias(campo[2]),
+    # Ratio de Ingresos a Deuda
+    df[campo[2]] = df[campo[1]] / df[campo[0]].replace({0: float('inf')})
 
-        # Ratio de Deuda a Créditos
-        pl.when(pl.col(campo[3]) == 0).then(float('inf'))  # Evitar división por cero
-        .otherwise(pl.col(campo[0]) / pl.col(campo[3])).alias(campo[4]),
+    # Ratio de Deuda a Créditos
+    df[campo[4]] = df[campo[0]] / df[campo[3]].replace({0: float('inf')})
 
-        # Categorización de los días desde la última campaña
-        # pl.when(pl.col(campo[5]) <= limite_categoria_ultima_camp[0])
-        # .then(pl.lit('reciente').alias(campo[6]))
-        # .when(pl.col(campo[5]).is_between(limite_categoria_ultima_camp[0] + 1, limite_categoria_ultima_camp[1]))
-        # .then(pl.lit('moderado').alias(campo[6]))
-        # .otherwise(pl.lit('antiguo').alias(campo[6])),
+    # Categorización de los días desde la última campaña
+    # df[campo[6]] = pd.cut(
+    #     df[campo[5]],
+    #     bins=[-float('inf'), limite_categoria_ultima_camp[0], limite_categoria_ultima_camp[1], float('inf')],
+    #     labels=['reciente', 'moderado', 'antiguo']
+    # )
 
-        # Ingresos Per Cápita
-        (pl.col(campo[1]) / pl.col(campo[7])).alias(campo[8]),
+    # Ingresos Per Cápita
+    df[campo[8]] = df[campo[1]] / df[campo[7]]
 
-        # # Combinación de Perfil de Riesgo y Estado Civil
-        # pl.concat_str([pl.col(campo[9]).cast(str), pl.col(campo[10])]).alias(campo[11]),
-    ]
-
-    # Aplicar todas las transformaciones en una sola operación
-    df = df.with_columns(new_columns)
+    # Combinación de Perfil de Riesgo y Estado Civil
+    # df[campo[11]] = df[campo[9]].astype(str) + df[campo[10]]
 
     logger.info("Nuevas características generadas!")
 
@@ -75,26 +64,22 @@ def new_features_pl(
 
 
 # 2. Agregar la variable objetivo al DataFrame
-def add_target_variable_pl(
-        df1: pl.DataFrame, #df
-        df2: pl.DataFrame, #target
-        params: Dict[str, Any] #general
-) -> pl.DataFrame:
+def add_target_variable_pd(df1: pd.DataFrame, df2: pd.DataFrame, params: Dict[str, Any]) -> pd.DataFrame:
     """
-    Agrega la variable objetivo al DataFrame de Polars.
+    Agrega la variable objetivo al DataFrame de Pandas.
 
     Parameters
     ----------
-    df1 : polars.DataFrame
-        DataFrame de polars al cual se añadirá la variable objetivo.
-    df12 : polars.DataFrame
-        DataFrame de polars que contiene la variable objetivo.
+    df1 : pd.DataFrame
+        DataFrame de Pandas al cual se añadirá la variable objetivo
+    df2 : pd.DataFrame
+        DataFrame de Pandas que contiene la variable objetivo
     params: Dict[str, Any]
-        Diccionario de parámetros featuring.
+        Diccionario de parámetros featuring
 
     Returns
     -------
-    pl.DataFrame
+    pd.DataFrame
         DataFrame con la variable objetivo añadida.
     """
     logger.info("Añadiendo la variable objetivo al DataFrame...")
@@ -103,7 +88,7 @@ def add_target_variable_pl(
     target_params = params['general']
 
     # Realizar un left join para añadir la columna 'y' de df2 a df1 basado en 'id'
-    df = df1.join(df2.select([target_params[0], target_params[1]]), on=target_params[0], how='left')
+    df = df1.merge(df2[[target_params[0], target_params[1]]], on=target_params[0], how='left')
 
     logger.info("Variable objetivo añadida!")
 
@@ -111,25 +96,22 @@ def add_target_variable_pl(
 
 
 # 3. Encoding de variables categóricas
-def cumulatively_categorise_pl(
-        column: pl.Series,
-        params: Dict[str, Any],
-) -> pl.Series:
+def cumulatively_categorise_pd(column: pd.Series, params: Dict[str, Any]) -> pd.Series:
     """
-    Categoriza acumulativamente una columna de un DataFrame de Polars, reemplazando los valores
+    Categoriza acumulativamente una columna de un DataFrame de Pandas, reemplazando los valores
     que no cumplen con el umbral especificado.
 
     Parameters
     ----------
-    column : polars.Series
-        Columna de un DataFrame de Polars que se categorizará acumulativamente.
+    column : pd.Series
+        Columna de un DataFrame de Pandas que se categorizará acumulativamente
     params: Dict[str, Any]
-        Diccionario de parámetros featuring.
+        Diccionario de parámetros featuring
 
     Returns
     -------
-    polars.Series
-        Columna de un DataFrame de Polars con la categorización acumulativa aplicada.
+    pd.Series
+        Columna de un DataFrame de Pandas con la categorización acumulativa aplicada.
     """
     logger.info(f"Empieza el proceso de categorización acumulativa para el campo '{column.name}'...")
 
@@ -138,20 +120,20 @@ def cumulatively_categorise_pl(
     replacement_value = params['value']
 
     # Calculamos el valor de umbral basado en el porcentaje dado
-    threshold_value = int(threshold * column.len())
+    threshold_value = int(threshold * len(column))
 
     # Calculamos los conteos y ordenamos de forma descendente
-    counts = column.to_frame().groupby(column).agg(pl.count()).sort(by=column.name, descending=True)
+    counts = column.value_counts().sort_values(ascending=False)
 
     # Acumulamos las frecuencias hasta llegar o superar el umbral
-    counts = counts.with_columns(pl.col("count").cumsum().alias("cumulative_count"))
-    valid_categories = counts.filter(pl.col("cumulative_count") <= threshold_value).select(column.name)
+    cumulative_counts = counts.cumsum()
+    valid_categories = cumulative_counts[cumulative_counts <= threshold_value].index.tolist()
 
     # Creamos una lista con las categorías válidas más el valor de reemplazo
-    valid_categories = valid_categories.to_series().to_list() + [replacement_value]
+    valid_categories.append(replacement_value)
 
     # Reemplazamos los valores que no están en la lista de categorías válidas
-    new_column = column.apply(lambda x: x if x in valid_categories else replacement_value, return_dtype=column.dtype)
+    new_column = column.apply(lambda x: x if x in valid_categories else replacement_value)
 
     logger.info(f"Categorización acumulativa completada para el campo '{column.name}'!")
 
@@ -162,44 +144,34 @@ def replace_spaces_with_underscores(category):
     return re.sub(r'\s+', '_', category)
 
 
-def one_hot_encoding_pl(
-        df: pl.DataFrame,
-        params: Dict[str, Any],
-) -> pl.DataFrame:
+def one_hot_encoding_pd(df: pd.DataFrame, params: Dict[str, Any]) -> pd.DataFrame:
     """
     Aplica One Hot Encoding a las columnas especificadas en el diccionario de parámetros.
 
     Parameters
     ----------
-    df : polars.DataFrame
-        DataFrame de polars al que se le aplicará One Hot Encoding.
+    df : pd.DataFrame
+        DataFrame de Pandas al que se le aplicará One Hot Encoding
     params: Dict[str, Any]
-        Diccionario de parámetros featuring.
+        Diccionario de parámetros featuring
 
     Returns
     -------
-    pl.DataFrame: DataFrame con las columnas transformadas.
+    pd.DataFrame: DataFrame con las columnas transformadas.
     """
     logger.info("Iniciando One Hot Encoding...")
 
     # Parámetros
     cum_cat = params['cum_cat']
-    one_hot_encoder = [nombre for nombre, dtype in df.schema.items() if dtype == pl.Utf8]
+    one_hot_encoder = [nombre for nombre in df.columns if df[nombre].dtype == 'object']
 
     for var in one_hot_encoder:
         # `cumulatively_categorise` es una función definida que categoriza y luego transforma en códigos enteros.
-        df = df.with_columns(
-            cumulatively_categorise_pl(df[var], cum_cat).alias(var)
-        )
+        df[var] = cumulatively_categorise_pd(df[var], cum_cat)
 
         # Realizando One Hot Encoding
-        df = df.with_columns([
-            pl.when(df[var] == category)
-            .then(1)
-            .otherwise(0)
-            .alias(f"{var}_{replace_spaces_with_underscores(category)}")
-            for category in df[var].unique().to_list()
-        ]).drop(var)
+        dummies = pd.get_dummies(df[var], prefix=var, prefix_sep='_')
+        df = pd.concat([df.drop(columns=[var]), dummies], axis=1)
 
     logger.info("One Hot Encoding completado!")
 
@@ -214,7 +186,7 @@ def add_random_variables_pd(df: pd.DataFrame) -> pd.DataFrame:
     Parameters
     ----------
     df : pandas.DataFrame
-        DataFrame al que se agregarán las variables aleatorias.
+        DataFrame al que se agregarán las variables aleatorias
 
     Returns
     -------
@@ -230,37 +202,31 @@ def add_random_variables_pd(df: pd.DataFrame) -> pd.DataFrame:
 
     return df
 
-def random_forest_selection_pl(
-        df: pl.DataFrame,
-        params: Dict[str, Any],
-) -> pl.DataFrame:
+
+def random_forest_selection_pd(df: pd.DataFrame, params: Dict[str, Any]) -> pd.DataFrame:
     """
-    Entrena un modelo RandomForest y calcula la importancia de las características usando Polars.
+    Entrena un modelo RandomForest y calcula la importancia de las características usando Pandas.
 
     Parameters
     ----------
-    df : pl.DataFrame
-        DataFrame de Polars al que se le calculará la importancia de las características.
+    df : pd.DataFrame
+        DataFrame de Pandas al que se le calculará la importancia de las características
     params: Dict[str, Any]
-        Diccionario de parámetros featuring.
+        Diccionario de parámetros featuring
 
     Returns
     -------
-    pl.DataFrame: DataFrame con la importancia de las características calculadas.
+    pd.DataFrame: DataFrame con la importancia de las características calculadas.
     """
-
     logger.info("Iniciando la selección de características con Random Forest...")
 
     # Parámetros
     rf_selection = params['rf_selection']
     id_target = params['general']
 
-    # Convertimos a pandas para usar train_test_split
-    df_pandas = df.to_pandas()
-
     # Divide los datos en conjuntos de entrenamiento y prueba
-    X = df_pandas.drop(columns=[id_target[1], id_target[0]])
-    y = df_pandas[id_target[1]]
+    X = df.drop(columns=[id_target[1], id_target[0]])
+    y = df[id_target[1]]
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=rf_selection['test_size'],
                                                         random_state=rf_selection['seed'])
 
@@ -285,21 +251,23 @@ def random_forest_selection_pl(
     feature_names = X_train.columns.tolist()
 
     # Crea un DataFrame para mostrar la importancia de las características
-    feature_importance_df = pl.DataFrame({
+    feature_importance_df = pd.DataFrame({
         "Feature": feature_names,
         "Importance": feature_importance
     })
 
     # Ordena el DataFrame por importancia de manera descendente
-    feature_importance_df = feature_importance_df.sort("Importance", descending=True)
+    feature_importance_df = feature_importance_df.sort_values(by="Importance", ascending=False)
 
     # Obtener la importancia de las variables aleatorias
-    random_var_imp_0_1 = feature_importance_df.filter(pl.col("Feature") == "var_aleatoria_uniforme").select("Importance").to_numpy()[0][0]
-    random_var_imp_1_4 = feature_importance_df.filter(pl.col("Feature") == "var_aleatoria_entera").select("Importance").to_numpy()[0][0]
+    random_var_imp_0_1 = feature_importance_df.loc[feature_importance_df['Feature'] == 'var_aleatoria_uniforme', 'Importance'].values[0]
+    random_var_imp_1_4 = feature_importance_df.loc[feature_importance_df['Feature'] == 'var_aleatoria_entera', 'Importance'].values[0]
 
     # Eliminar las variables con importancia menor que las variables aleatorias
-    feature_importance_df = feature_importance_df.filter(
-        (pl.col("Importance") > random_var_imp_0_1) & (pl.col("Importance") > random_var_imp_1_4))
+    feature_importance_df = feature_importance_df[
+        (feature_importance_df["Importance"] > random_var_imp_0_1) &
+        (feature_importance_df["Importance"] > random_var_imp_1_4)
+    ]
 
     logger.info("Selección de características con Random Forest completada!")
 
@@ -322,122 +290,115 @@ def entropy(p):
     return -np.sum([pi * np.log2(pi) if pi > 0 else 0 for pi in p])
 
 
-def conditional_entropy_selection_pl(
-        df: pl.DataFrame,
-        params: Dict[str, Any],
-) -> pl.DataFrame:
+def conditional_entropy_selection_pd(df: pd.DataFrame, params: Dict[str, Any]) -> pd.DataFrame:
     """
     Calcula la entropía condicional y la ganancia de información para un
-    conjunto de variables usando polars.
+    conjunto de variables usando Pandas.
 
     Parameters
     ----------
-    df : polars.DataFrame
-        DataFrame de polars al que se le calculará la entropía condicional.
+    df : pd.DataFrame
+        DataFrame de Pandas al que se le calculará la entropía condicional
     params: Dict[str, Any]
-        Diccionario de parámetros featuring.
+        Diccionario de parámetros featuring
 
     Returns
     -------
-    pl.DataFrame: DataFrame con la entropía condicional y la ganancia de
+    pd.DataFrame: DataFrame con la entropía condicional y la ganancia de
     información calculadas.
     """
     logger.info("Iniciando la selección de características con Entropía Condicional...")
 
     # Parámetros
     id_target = params['general']
-    treshold = params['ce_selection']['theshold']
+    threshold = params['ce_selection']['threshold']
 
     # Eliminar id y target
-    df = df.drop(id_target[0])
+    df = df.drop(columns=[id_target[0]])
 
     # Entropía variable objetivo
-    des = df.group_by(id_target[1]).agg(pl.len().alias('count'))
-    pr = des['count'] / df.height  # Obtener el número total de filas con df.height()
-    Ho = entropy(pr.to_numpy())
+    target_counts = df[id_target[1]].value_counts()
+    pr = target_counts / len(df)
+    Ho = entropy(pr)
 
     # Cálculo de entropía condicional
     feature_names, feature_importance = [], []
 
-    for columna in df.columns:
-        if columna == id_target[1]:
+    for column in df.columns:
+        if column == id_target[1]:
             continue
         H = 0
-        feature_names.append(columna)
+        feature_names.append(column)
 
         # Cálculo de entropía condicional en el bucle for
-        grouped = df.group_by(columna).agg(pl.col(id_target[1]).count().alias("count"))
-        # Aseguramos que cada columna sea accesible por su nombre para evitar confusiones futuras
-        grouped = grouped.with_columns(pl.col(columna).alias('value'))
-        for row in grouped.rows():
-            # Usamos índices de acuerdo a cómo están ordenadas las columnas en el DataFrame agrupado
-            value, group_count = row[0], row[1]  # Asumiendo que 'columna' y 'count' son las primeras dos columnas
-            df_i = df.filter(pl.col(columna) == value)
-            des = df_i.group_by(id_target[1]).agg(pl.len().alias('count'))
-            pr = des['count'] / group_count
-            Hcond = entropy(pr.to_numpy())
-            prob = group_count / df.height  # Usamos la propiedad height de Polars directamente
+        grouped = df.groupby(column)[id_target[1]].value_counts().unstack(fill_value=0)
+        for value, group_counts in grouped.iterrows():
+            pr = group_counts / group_counts.sum()
+            Hcond = entropy(pr)
+            prob = group_counts.sum() / len(df)
             H += Hcond * prob
 
         feature_importance.append(Ho - H)
 
     # Crear un DataFrame con la importancia de las características
-    data_entropia = pl.DataFrame({'Feature': feature_names, 'Importance': feature_importance})
+    data_entropia = pd.DataFrame({'Feature': feature_names, 'Importance': feature_importance})
 
     # Ordenar el DataFrame por importancia de manera descendente
-    df_entropia = data_entropia.sort(by='Importance', descending=True)
+    df_entropia = data_entropia.sort_values(by='Importance', ascending=False)
 
     # Filtrar características según el umbral de importancia
-    df_entropia = df_entropia.filter(pl.col('Importance') >= treshold)
+    df_entropia = df_entropia[df_entropia['Importance'] >= threshold]
 
     logger.info("Selección de características con Entropía Condicional completada!")
 
     return df_entropia
 
 
-def intersect_top_features_pl(
-    df1: pl.DataFrame, # Caracteristicas de random forest
-    df2: pl.DataFrame, # Caracteristicas de entropia
-    df3: pl.DataFrame, # Dataframe original
+def intersect_top_features_pd(
+    df1: pd.DataFrame, # Características de random forest
+    df2: pd.DataFrame, # Características de entropía
+    df3: pd.DataFrame, # Dataframe original
     params: Dict[str, Any],
-) -> pl.DataFrame:
+) -> pd.DataFrame:
     """
-    Obtiene las características más importantes de dos DataFrames basado en un diccionario de parámetros
+    Obtiene las características más importantes de dos DataFrames basado en un diccionario de parámetros.
 
     Parameters
     ----------
-    df1, df2, df3: polars.DataFrame
-        DataFrames de polars de los que se obtendrán las características más importantes y dataframe orginal
+    df1, df2, df3: pd.DataFrame
+        DataFrames de Pandas de los que se obtendrán las características más importantes y el dataframe original
     params: Dict[str, Any]
-        Diccionario de parámetros featuring.
+        Diccionario de parámetros featuring
 
     Returns
     -------
-    pl.DataFrame: DataFrame con las características más importantes mas la variable objetivo.
+    pd.DataFrame: DataFrame con las características más importantes más la variable objetivo.
     """
-    logger.info("Intersección de las feature importence por los métodos aplicados...")
+    logger.info("Intersección de las feature importance por los métodos aplicados...")
 
     # Parámetros
     n = params['features_importance']['top_features']
     id_target = params['general']
 
     # Obtén las n características más importantes del dataframe
-    top_features_df1 = set(df1.select('Feature').limit(n).to_pandas()['Feature'])
-    top_features_df2 = set(df2.select('Feature').limit(n).to_pandas()['Feature'])
+    top_features_df1 = set(df1['Feature'].head(n))
+    top_features_df2 = set(df2['Feature'].head(n))
 
     # Une los conjuntos para obtener todas las características únicas de los dos dataframes
     top_features = top_features_df1.union(top_features_df2)
 
-    logger.info("Intersección de las feature importence completada!")
+    logger.info("Intersección de las feature importance completada!")
 
     # Añade la variable objetivo y filtra el dataframe original
     top_features.add(id_target[1])
-    filtered_df = df3.select([*top_features])
+    filtered_df = df3[list(top_features.intersection(df3.columns))]
 
     # Asegúrate de excluir la columna 'id', si existe
-    if 'id' in filtered_df.columns:
-        filtered_df = filtered_df.drop(id_target[0])
+    if id_target[0] in filtered_df.columns:
+        filtered_df = filtered_df.drop(columns=[id_target[0]])
 
     logger.info("DataFrame con las características más importantes y la variable objetivo generado!")
 
     return filtered_df
+
+

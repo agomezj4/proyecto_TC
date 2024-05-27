@@ -11,49 +11,49 @@ stages:
   - python3 -m venv proyecto_tc
   - source proyecto_tc/bin/activate
   - pip3 install --upgrade pip
-  - pip3 install PyYAML
-  - pip3 install pyarrow
-  - pip3 install pandas
+  - pip3 install PyYAML==6.0.0
+  - pip3 install pyarrow==16.1.0
+  - pip3 install pandas==2.2.0
 
 # Instalación específica para el stage de preparation
 .preparation_setup: &preparation_setup
   - *common_setup
-  - pip3 install xlsx2csv
-  - pip3 install openpyxl
+  - pip3 install xlsx2csv==0.8.2
+  - pip3 install openpyxl==3.1.0
 
 # Instalación específica para el stage de feature_engineering
 .feature_engineering_setup: &feature_engineering_setup
   - *common_setup
-  - pip3 install numpy
-  - pip3 install scikit-learn
+  - pip3 install numpy==1.26.0
+  - pip3 install scikit-learn==1.4.0
 
 # Instalación específica para el stage de model_input
 .model_input_setup: &model_input_setup
   - *common_setup
-  - pip3 install scikit-learn
-  - pip3 install imbalanced-learn
+  - pip3 install scikit-learn==1.4.0
+  - pip3 install imbalanced-learn==0.12.0
 
 # Instalación específica para el stage de models
 .models_setup: &models_setup
   - *common_setup
-  - pip3 install numpy
-  - pip3 install scikit-learn
-  - pip3 install xgboost
-  - pip3 install scipy
-  - pip3 install scikit-posthocs
+  - pip3 install numpy==1.26.0
+  - pip3 install scikit-learn==1.4.0
+  - pip3 install xgboost==2.0.3
+  - pip3 install scipy==1.13.0
+  - pip3 install scikit-posthocs==0.9.0
 
 # Instalación específica para el stage de model_selection
 .model_selection_setup: &model_selection_setup
   - *common_setup
-  - pip3 install numpy
-  - pip3 install scikit-learn
-  - pip3 install bayesian-optimization
+  - pip3 install numpy==1.26.0
+  - pip3 install scikit-learn==1.4.0
+  - pip3 install bayesian-optimization==1.4.3
 
 
 ## Ejecución de los stages
 
 preparation_pipeline:
-  image: ruby:3.1
+  image: python:3.11.0
   stage: preparation
   before_script:
     *preparation_setup
@@ -63,7 +63,7 @@ preparation_pipeline:
     - echo "FIN ETAPA PROCESAMIENTO DE DATOS!"
 
 feature_engineering_pipeline:
-  image: ruby:3.1
+  image: python:3.11.0
   stage: feature_engineering
   before_script:
     *feature_engineering_setup
@@ -73,7 +73,7 @@ feature_engineering_pipeline:
     - echo "FIN ETAPA INGENIERÍA DE CARACTERÍSTICAS!"
 
 model_input_pipeline:
-  image: ruby:3.1
+  image: python:3.11.0
   stage: model_input
   before_script:
     *model_input_setup
@@ -83,7 +83,7 @@ model_input_pipeline:
     - echo "FIN ETAPA MODEL INPUT!"
 
 training:
-  image: ruby:3.1
+  image: python:3.11.0
   stage: training
   before_script:
     *models_setup
@@ -93,7 +93,7 @@ training:
     - echo "FIN ETAPA EXPERIMENTACIÓN MODELOS!"
 
 model_selection_pipeline:
-    image: ruby:3.1
+    image: python:3.11.0
     stage: model_selection
     before_script:
         *model_selection_setup

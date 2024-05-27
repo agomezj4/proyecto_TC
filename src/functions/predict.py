@@ -1,6 +1,6 @@
 #1. Usar el best model para predecir el target con un dataset.
 
-# -Filtrar realizarle al dataset el mismo preprocesamiento que al dataset de entrenamiento
+# -Realizarle al dataset el mismo preprocesamiento que al dataset de entrenamiento
 # -Filtrar el dataset por los features seleccionados
 # -Predecir el target con el modelo seleccionado
 

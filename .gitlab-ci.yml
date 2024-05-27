@@ -47,6 +47,7 @@ stages:
   - *common_setup
   - pip3 install numpy==1.26.0
   - pip3 install scikit-learn==1.4.0
+  - pip3 install xgboost==2.0.3
   - pip3 install bayesian-optimization==1.4.3
 
 
@@ -82,7 +83,7 @@ model_input_pipeline:
     - proyecto_tc/bin/python3 __main__.py 'model_input_pipeline'
     - echo "FIN ETAPA MODEL INPUT!"
 
-training:
+training_pipeline:
   image: python:3.11.0
   stage: training
   before_script:

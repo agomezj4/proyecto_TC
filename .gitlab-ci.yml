@@ -4,6 +4,7 @@ stages:
   - model_input
   - training
   - model_selection
+  - prediction
 
 # Configuración común para todos los stages
 .common_setup: &common_setup
@@ -49,6 +50,14 @@ stages:
   - pip3 install scikit-learn==1.4.0
   - pip3 install xgboost==2.0.3
   - pip3 install bayesian-optimization==1.4.3
+
+# Instalación específica para el stage de prediction
+.prediction_setup: &prediction_setup
+  - *common_setup
+  - pip3 install numpy==1.26.0
+  - pip3 install scikit-learn==1.4.0
+  - pip3 install xgboost==2.0.3
+  - pip3 install pandas==2.2.0
 
 
 ## Ejecución de los stages
@@ -102,3 +111,13 @@ model_selection_pipeline:
         - echo "INICIO ETAPA SELECCIÓN DE MODELOS..."
         - proyecto_tc/bin/python3 __main__.py 'model_selection_pipeline'
         - echo "FIN ETAPA SELECCIÓN DE MODELOS!"
+
+prediction_pipeline:
+    image: python:3.11.0
+    stage: prediction
+    before_script:
+        *prediction_setup
+    script:
+        - echo "INICIO ETAPA PREDICCIONES..."
+        - proyecto_tc/bin/python3 __main__.py 'prediction_pipeline'
+        - echo "FIN ETAPA PREDICCIONES!"

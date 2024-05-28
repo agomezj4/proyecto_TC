@@ -3,11 +3,17 @@ tag_dict_path: tag_dict_tc.xlsx
 
 raw_data_path: data_raw.csv
 
+data_new_path: data_new.csv
+
 processed_data_path: data_processing.parquet
 
 target_column_path: target.csv
 
 features_data_path: data_featuring.parquet
+
+features_names_path: features_names.csv
+
+data_set_path: data_set.parquet
 
 train_data_path: data_train.parquet
 
@@ -24,3 +30,5 @@ best_basic_model_path: best_basic_model.pkl
 best_ensemble_model_path: best_ensemble_model.pkl
 
 best_model_ab_test_path: best_model.pkl # En caso de que A/B testing seleccione el best model
+
+prediction_path: prediction_tc.csv

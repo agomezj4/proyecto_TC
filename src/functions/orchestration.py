@@ -2,6 +2,7 @@ import pandas as pd
 import os
 import sys
 import yaml
+import csv
 import pickle
 import logging
 
@@ -21,12 +22,14 @@ data_raw_directory = os.path.join(project_root, 'data', 'raw')
 data_processed_directory = os.path.join(project_root, 'data', 'processed')
 target_directory = os.path.join(project_root, 'data', 'processed')
 data_features_directory = os.path.join(project_root, 'data', 'featured')
+data_set_directory = os.path.join(project_root, 'data', 'model_input')
 data_train_directory = os.path.join(project_root, 'data', 'model_input', 'train')
 data_test_directory = os.path.join(project_root, 'data', 'model_input', 'test')
 data_validation_directory = os.path.join(project_root, 'data', 'model_input', 'validation')
 data_model_basic_directory = os.path.join(project_root, 'data', 'models', 'basic')
 data_model_ensemble_directory = os.path.join(project_root, 'data', 'models', 'ensemble')
 data_model_selection_directory = os.path.join(project_root, 'data', 'models', 'model_selection')
+data_prediction_directory = os.path.join(project_root, 'data', 'predicted')
 
 
 # Lista todos los archivos YAML en el directorio especificado
@@ -43,7 +46,7 @@ for yaml_file in yaml_files:
         parameters[key_name] = data
 
 
-# Pipeline de orquestación
+## Pipeline de orquestación
 
 # Pipeline de procesamiento
 def run_processing():
@@ -99,7 +102,8 @@ def run_featuring():
                                      one_hot_encoding_pd,
                                      random_forest_selection_pd,
                                      conditional_entropy_selection_pd,
-                                     intersect_top_features_pd)
+                                     intersect_top_features_pd,
+                                     features_names_pd)
 
     # Cargar datos procesados
     processed_data_path = os.path.join(data_processed_directory, parameters['parameters_catalog']['processed_data_path'])
@@ -124,6 +128,14 @@ def run_featuring():
 
     # Intersección de las mejores características
     data_features = intersect_top_features_pd(data_random_forest, data_conditional_entropy, data_one_hot, parameters['parameters_featuring'])
+
+    # Guardar nombres de características
+    features_names_path = os.path.join(data_features_directory, parameters['parameters_catalog']['features_names_path'])
+    features_names = features_names_pd(data_features, parameters['parameters_featuring'])
+    with open(features_names_path, mode='w', newline='') as file:
+        writer = csv.writer(file)
+        for item in features_names:
+            writer.writerow([item])
 
     # Guardar datos de características
     features_data_path = os.path.join(data_features_directory, parameters['parameters_catalog']['features_data_path'])
@@ -150,6 +162,10 @@ def run_model_input():
 
     # Separar datos en entrenamiento y prueba
     train_data, test_data, validation_data = train_test_split_pd(data_balanced, parameters['parameters_model_input'])
+
+    # Guardar datos para entrenar
+    data_set_path = os.path.join(data_set_directory, parameters['parameters_catalog']['data_set_path'])
+    data_scaled.to_parquet(data_set_path)
 
     # Guardar datos de entrenamiento y prueba
     train_data_path = os.path.join(data_train_directory, parameters['parameters_catalog']['train_data_path'])
@@ -190,7 +206,8 @@ def run_model_selection():
     # Nodos pipeline de selección de modelos
     from functions.model_selection import (optimize_train_knn,
                                            optimize_train_xgboost,
-                                           ab_test_models)
+                                           ab_test_models,
+                                           train_best_model)
 
     # Cargar datos de validación
     val_data_path = os.path.join(data_validation_directory, parameters['parameters_catalog']['validation_data_path'])
@@ -199,6 +216,10 @@ def run_model_selection():
     # Cargar datos de prueba
     test_data_path = os.path.join(data_test_directory, parameters['parameters_catalog']['test_data_path'])
     test_data = pd.read_parquet(test_data_path)
+
+    # Cargar todo el conjunto de datos
+    data_set_path = os.path.join(data_set_directory, parameters['parameters_catalog']['data_set_path'])
+    data_set = pd.read_parquet(data_set_path)
 
     # Cargar modelos
     basic_model_path = os.path.join(data_model_basic_directory, parameters['parameters_catalog']['basic_model_path'])
@@ -217,14 +238,56 @@ def run_model_selection():
     # A/B testing
     ab_model_selection = ab_test_models(best_knn, best_xgboost, test_data, parameters['parameters_model_selection'])
 
-    # Guardar modelos seleccionados
-    best_basic_model_path = os.path.join(data_model_selection_directory, parameters['parameters_catalog']['best_basic_model_path'])
-    best_ensemble_model_path = os.path.join(data_model_selection_directory, parameters['parameters_catalog']['best_ensemble_model_path'])
-    best_model_ab_test_path = os.path.join(data_model_selection_directory, parameters['parameters_catalog']['best_model_ab_test_path'])
+    # Entrear mejor modelo
+    best_model = train_best_model(best_xgboost, data_set, parameters['parameters_model_selection'])
 
-    with open(best_basic_model_path, 'wb') as f:
-        pickle.dump(best_knn, f)
+    # Guardar modelos seleccionados
+    #best_basic_model_path = os.path.join(data_model_selection_directory, parameters['parameters_catalog']['best_basic_model_path'])
+    best_ensemble_model_path = os.path.join(data_model_selection_directory, parameters['parameters_catalog']['best_ensemble_model_path'])
+    #best_model_ab_test_path = os.path.join(data_model_selection_directory, parameters['parameters_catalog']['best_model_ab_test_path'])
+
+    # with open(best_basic_model_path, 'wb') as f:
+    #     pickle.dump(best_knn, f)
     with open(best_ensemble_model_path, 'wb') as f:
-        pickle.dump(best_xgboost, f)
-    with open(best_model_ab_test_path, 'wb') as f:
-        pickle.dump(ab_model_selection, f)
+        pickle.dump(best_model, f)
+    # with open(best_model_ab_test_path, 'wb') as f:
+    #     pickle.dump(ab_model_selection, f)
+
+
+# Pipeline de predicción
+def run_predicting():
+
+    # Nodos pipeline de predicción
+    from functions.predicting import (add_predictions)
+
+    # Cargar datos
+    tag_dict_path = os.path.join(data_raw_directory, parameters['parameters_catalog']['tag_dict_path'])
+    data_new_path = os.path.join(data_raw_directory, parameters['parameters_catalog']['data_new_path'])
+
+    tag_dict = pd.read_excel(tag_dict_path)
+    data_new = pd.read_csv(data_new_path)
+
+
+    # Cargar features
+    feature_selection_path = os.path.join(data_features_directory,
+                                          parameters['parameters_catalog']['features_names_path'])
+    features = list((pd.read_csv(feature_selection_path, header=None))[0])
+
+
+    # Carcar modelo
+    best_ensemble_model_path = os.path.join(data_model_selection_directory,
+                                            parameters['parameters_catalog']['best_ensemble_model_path'])
+    with open(best_ensemble_model_path, 'rb') as f:
+        best_ensemble_model = pickle.load(f)
+
+    # Validar datos
+    predicciones = add_predictions(data_new,
+                                   tag_dict,
+                                   parameters['parameters_processing'],
+                                   parameters['parameters_featuring'],
+                                   best_ensemble_model,
+                                   features)
+
+    # Guardar predicciones
+    prediction_path = os.path.join(data_prediction_directory, parameters['parameters_catalog']['prediction_path'])
+    predicciones.to_csv(prediction_path, index=False)

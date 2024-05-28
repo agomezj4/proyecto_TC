@@ -6,6 +6,7 @@ import logging
 import re
 import numpy as np
 
+from sklearn.preprocessing import OneHotEncoder
 from sklearn.ensemble import RandomForestClassifier, BaggingClassifier
 from sklearn.model_selection import train_test_split
 
@@ -45,18 +46,8 @@ def new_features_pd(df: pd.DataFrame, params: Dict[str, Any]) -> pd.DataFrame:
     # Ratio de Deuda a Créditos
     df[campo[4]] = df[campo[0]] / df[campo[3]].replace({0: float('inf')})
 
-    # Categorización de los días desde la última campaña
-    # df[campo[6]] = pd.cut(
-    #     df[campo[5]],
-    #     bins=[-float('inf'), limite_categoria_ultima_camp[0], limite_categoria_ultima_camp[1], float('inf')],
-    #     labels=['reciente', 'moderado', 'antiguo']
-    # )
-
     # Ingresos Per Cápita
     df[campo[8]] = df[campo[1]] / df[campo[7]]
-
-    # Combinación de Perfil de Riesgo y Estado Civil
-    # df[campo[11]] = df[campo[9]].astype(str) + df[campo[10]]
 
     logger.info("Nuevas características generadas!")
 
@@ -163,15 +154,24 @@ def one_hot_encoding_pd(df: pd.DataFrame, params: Dict[str, Any]) -> pd.DataFram
 
     # Parámetros
     cum_cat = params['cum_cat']
-    one_hot_encoder = [nombre for nombre in df.columns if df[nombre].dtype == 'object']
+    one_hot_encoder_columns = [nombre for nombre in df.columns if df[nombre].dtype == 'object']
 
-    for var in one_hot_encoder:
+    for var in one_hot_encoder_columns:
+        if var not in df.columns:
+            logger.error(f"La columna '{var}' no existe en el DataFrame.")
+            raise KeyError(f"La columna '{var}' no existe en el DataFrame.")
         # `cumulatively_categorise` es una función definida que categoriza y luego transforma en códigos enteros.
         df[var] = cumulatively_categorise_pd(df[var], cum_cat)
 
-        # Realizando One Hot Encoding
-        dummies = pd.get_dummies(df[var], prefix=var, prefix_sep='_')
-        df = pd.concat([df.drop(columns=[var]), dummies], axis=1)
+    # Inicializamos el OneHotEncoder
+    encoder = OneHotEncoder(sparse_output=False, drop=None)
+    encoded_columns = encoder.fit_transform(df[one_hot_encoder_columns])
+    encoded_df = pd.DataFrame(encoded_columns, columns=encoder.get_feature_names_out(one_hot_encoder_columns))
+
+    # Eliminamos las columnas originales y unimos las nuevas columnas codificadas
+    df = df.drop(columns=one_hot_encoder_columns).reset_index(drop=True)
+    encoded_df = encoded_df.reset_index(drop=True)
+    df = pd.concat([df, encoded_df], axis=1)
 
     logger.info("One Hot Encoding completado!")
 
@@ -400,5 +400,38 @@ def intersect_top_features_pd(
     logger.info("DataFrame con las características más importantes y la variable objetivo generado!")
 
     return filtered_df
+
+
+# 5. Obtener nombre de las features
+def features_names_pd(df: pd.DataFrame, params: Dict[str, Any]) -> list:
+    """
+    Obtiene los nombres de las características de un DataFrame de Pandas.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame de Pandas del que se obtendrán los nombres de las características
+    params: Dict[str, Any]
+        Diccionario de parámetros featuring
+
+    Returns
+    -------
+    list: Lista con los nombres de los campos del DataFrame.
+    """
+    logger.info("Obteniendo los nombres de las características seleccionadas...")
+
+    # Parámetros
+    id_target = params['general'][1]
+
+    # Obtén los nombres de las características
+    features = df.columns.tolist()
+
+    # Elimina la variable objetivo de la lista de características
+    if id_target in features:
+        features.remove(id_target)
+
+    logger.info("Nombres de las características seleccionadas obtenidos!")
+
+    return features
 
 

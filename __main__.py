@@ -8,7 +8,8 @@ from functions.orchestration import (run_processing,
                                      run_featuring,
                                      run_model_input,
                                      run_models,
-                                     run_model_selection,)
+                                     run_model_selection,
+                                     run_predicting)
 
 def main():
     if len(sys.argv) > 1:
@@ -19,6 +20,7 @@ def main():
             run_model_input()
             run_models()
             run_model_selection()
+            run_predicting()
 
         elif stage == 'preparation_pipeline':
             run_processing()
@@ -34,6 +36,9 @@ def main():
 
         elif stage == 'model_selection_pipeline':
             run_model_selection()
+
+        elif stage == 'predicting_pipeline':
+            run_predicting()
 
         else:
             print(f"Etapa '{stage}' no reconocida. Las etapas válidas son: preparation")

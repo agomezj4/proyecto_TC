@@ -293,3 +293,43 @@ def ab_test_models(
         logger.info(f"No hay una diferencia significativa entre los modelos {model_a_name} y {model_b_name}")
         return None
 
+
+#4. Entrenar mejor modelo con todo el conjunto de datos
+def train_best_model(
+    model: Pipeline,
+    df: pd.DataFrame,
+    params: Dict[str, Any]
+) -> Pipeline:
+    """
+    Entrena el mejor modelo con todo el conjunto de datos.
+
+    Parámetros
+    ----------
+    model : Pipeline
+        Pipeline que contiene el modelo a entrenar
+    df : pd.DataFrame
+        Conjunto de datos completo para entrenar el modelo
+    params: Dict[str, Any]
+        Diccionario de parámetros model selection
+
+    Retornos
+    -------
+    Pipeline
+        Pipeline con el modelo entrenado con todo el conjunto de datos.
+    """
+    logger.info("Entrenando el mejor modelo con todo el conjunto de datos...")
+
+    # Parámetros
+    target_col = params["target_col"]
+
+    # Seleccionar variables
+    X = df.drop(columns=[target_col])
+    y = df[target_col].values
+
+    # Entrenar el modelo con todo el conjunto de datos
+    model.fit(X, y)
+
+    logger.info("Modelo entrenado con éxito!")
+
+    return model
+
